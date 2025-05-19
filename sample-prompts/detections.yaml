@@ -1,0 +1,201 @@
+
+# Prompy Language Detection Configuration
+#
+# This file configures how Prompy detects programming languages in your projects.
+# For each language, you can define:
+#
+# file_patterns: List of file patterns (glob) that indicate this language
+# dir_patterns: List of directory patterns (glob) that indicate this language
+# content_patterns: List of strings to look for in file contents
+# weight: Optional weight multiplier for this language (default: 1.0)
+#
+# Example:
+# python:
+#   file_patterns:
+#     - "*.py"
+#     - "requirements.txt"
+#   dir_patterns:
+#     - ".venv"
+#     - "__pycache__"
+#   content_patterns:
+#     - "import "
+#     - "def "
+#   weight: 1.0
+c:
+  content_patterns:
+  - '#include '
+  - 'int '
+  - 'void '
+  - 'struct '
+  - 'typedef '
+  dir_patterns:
+  - obj
+  - bin
+  file_patterns:
+  - '*.c'
+  - '*.h'
+  - Makefile
+  - CMakeLists.txt
+  weight: 1.0
+cpp:
+  content_patterns:
+  - '#include '
+  - 'class '
+  - 'namespace '
+  - 'std::'
+  - template
+  dir_patterns:
+  - obj
+  - bin
+  file_patterns:
+  - '*.cpp'
+  - '*.hpp'
+  - '*.cc'
+  - '*.h'
+  - CMakeLists.txt
+  weight: 1.0
+csharp:
+  content_patterns:
+  - 'namespace '
+  - 'using '
+  - 'class '
+  - 'public '
+  - 'private '
+  dir_patterns:
+  - bin
+  - obj
+  file_patterns:
+  - '*.cs'
+  - '*.csproj'
+  - '*.sln'
+  weight: 1.0
+go:
+  content_patterns:
+  - 'package '
+  - 'import '
+  - 'func '
+  - 'type '
+  - 'struct '
+  dir_patterns:
+  - vendor
+  file_patterns:
+  - '*.go'
+  - go.mod
+  - go.sum
+  weight: 1.0
+java:
+  content_patterns:
+  - 'public class '
+  - 'private '
+  - 'protected '
+  - import java.
+  - 'package '
+  dir_patterns:
+  - src/main/java
+  - src/test/java
+  file_patterns:
+  - '*.java'
+  - pom.xml
+  - build.gradle
+  - .gradle
+  - gradlew
+  - settings.gradle
+  weight: 1.0
+javascript:
+  content_patterns:
+  - 'import '
+  - 'export '
+  - 'const '
+  - 'function '
+  - require(
+  dir_patterns:
+  - node_modules
+  file_patterns:
+  - '*.js'
+  - '*.jsx'
+  - package.json
+  - package-lock.json
+  - .eslintrc*
+  - .babelrc*
+  - webpack.config.js
+  weight: 1.0
+php:
+  content_patterns:
+  - <?php
+  - 'namespace '
+  - 'use '
+  - 'function '
+  - 'class '
+  dir_patterns:
+  - vendor
+  file_patterns:
+  - '*.php'
+  - composer.json
+  - .htaccess
+  weight: 1.0
+python:
+  content_patterns:
+  - 'import '
+  - 'from '
+  - 'def '
+  - 'class '
+  dir_patterns:
+  - .venv
+  - venv
+  - __pycache__
+  - .pytest_cache
+  file_patterns:
+  - '*.py'
+  - requirements.txt
+  - setup.py
+  - pyproject.toml
+  - Pipfile
+  - Pipfile.lock
+  - '*.ipynb'
+  weight: 1.0
+ruby:
+  content_patterns:
+  - 'require '
+  - 'class '
+  - 'def '
+  - 'module '
+  - 'gem '
+  dir_patterns:
+  - gems
+  - vendor/bundle
+  file_patterns:
+  - '*.rb'
+  - Gemfile
+  - Rakefile
+  - '*.gemspec'
+  weight: 1.0
+rust:
+  content_patterns:
+  - 'fn '
+  - 'struct '
+  - 'enum '
+  - 'impl '
+  - 'use '
+  dir_patterns:
+  - target/debug
+  - target/release
+  file_patterns:
+  - '*.rs'
+  - Cargo.toml
+  - Cargo.lock
+  weight: 1.0
+typescript:
+  content_patterns:
+  - 'interface '
+  - 'type '
+  - 'namespace '
+  - 'import '
+  - 'export '
+  dir_patterns:
+  - node_modules/@types
+  file_patterns:
+  - '*.ts'
+  - '*.tsx'
+  - tsconfig.json
+  - tslint.json
+  weight: 1.2
