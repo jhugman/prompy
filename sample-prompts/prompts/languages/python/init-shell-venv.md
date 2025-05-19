@@ -1,4 +1,4 @@
 ---
 description: Initialize the shell with .venv
 ---
-python -m venv .venv && source .venv/bin/activate && pip install -e .
+python -m venv .venv && source .venv/bin/activate
