@@ -90,7 +90,7 @@ fmt:
 
 # Build the package
 build:
-    uv pip --python 3.9 build .
+    python -m build .
 
 # Remove build artifacts
 clean:

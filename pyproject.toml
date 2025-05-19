@@ -8,19 +8,28 @@ version = "0.1.0"
 description = "A command-line tool for building prompts with reusable fragments"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
-    {name = "User", email = "user@example.com"}
+    {name = "Prompy Team", email = "info@example.com"}
 ]
+maintainers = [
+    {name = "Prompy Team", email = "info@example.com"}
+]
+keywords = ["prompt", "cli", "template", "ai", "llm", "copilot"]
+urls = {Homepage = "https://github.com/yourusername/prompy", Documentation = "https://github.com/yourusername/prompy#readme", "Source Code" = "https://github.com/yourusername/prompy", "Bug Tracker" = "https://github.com/yourusername/prompy/issues"}
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Markup",
+    "Topic :: Utilities",
 ]
 dependencies = [
     "click>=8.0.0",

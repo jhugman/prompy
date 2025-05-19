@@ -6,7 +6,11 @@ arguments:
   props: Description of component props (optional)
 ---
 
+<<<<<<< HEAD
 {{ @fragments/code-header(task="Create React Component", context="I need a new React component built with modern best practices.") }}
+=======
+@fragments/code-header(task="Create React Component", context="I need a new React component built with modern best practices.")
+>>>>>>> 142bbdf (PROMPT 13: Complete documentation and distribution setup)
 
 ## Component Details
 Name: {{component_name}}
@@ -19,4 +23,8 @@ Please implement this component with:
 4. Styled-components for styling
 5. Jest/React Testing Library tests
 
+<<<<<<< HEAD
 {{ @fragments/code-footer() }}
+=======
+@fragments/code-footer
+>>>>>>> 142bbdf (PROMPT 13: Complete documentation and distribution setup)
