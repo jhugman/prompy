@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prompy"
+version = "0.1.0"
+description = "A command-line tool for building prompts with reusable fragments"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "User", email = "user@example.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "click>=8.0.0",
+    "jinja2>=3.0.0",
+    "pyyaml>=6.0.0",
+    "pyperclip>=1.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "ruff",
+    "black",
+    "isort",
+]
+
+[project.scripts]
+prompy = "prompy.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["prompy"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+lint.select = ["E", "F", "W", "I"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
