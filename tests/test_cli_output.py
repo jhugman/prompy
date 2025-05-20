@@ -54,12 +54,10 @@ def test_out_command_to_stdout(mock_output_env):
     runner = CliRunner()
 
     with runner.isolated_filesystem():
-        with patch("prompy.output.output_to_stdout", return_value=True) as mock_stdout:
-            result = runner.invoke(cli, ["--project", "test-project", "out"])
+        result = runner.invoke(cli, ["--project", "test-project", "out"])
 
-            assert result.exit_code == 0
-            assert "---" in result.output
-            mock_stdout.assert_called_once_with(test_content)
+        assert result.exit_code == 0
+        assert "This is test prompt content" in result.output
 
 
 def test_out_command_to_file(mock_output_env):

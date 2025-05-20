@@ -122,8 +122,9 @@ def cli(
 
 @cli.command()
 @click.argument("prompt_slug", required=False, shell_complete=complete_prompt_slug)
+@click.option("--save", "save_as", required=False, shell_complete=complete_prompt_slug)
 @click.pass_context
-def new(ctx: click.Context, prompt_slug: Optional[str]) -> None:
+def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) -> None:
     """
     Start a new prompt.
 
@@ -177,21 +178,23 @@ def new(ctx: click.Context, prompt_slug: Optional[str]) -> None:
         clear_cache(cache_dir, project_name)
         save_to_cache(cache_dir, project_name, template_content)
 
-        click.echo(f"Created new prompt file for project: {project_name}")
+        if not stdin_content:
+            # Get the cache file path
+            cache_file_path = get_cache_file_path(cache_dir, project_name)
 
-        # Get the cache file path
-        cache_file_path = get_cache_file_path(cache_dir, project_name)
+            # Load prompt files for help comments
+            prompt_files = prompt_context.load_all()
 
-        # Load prompt files for help comments
-        prompt_files = prompt_context.load_all()
+            # Launch the editor
+            success = edit_file_with_comments(str(cache_file_path), prompt_files)
 
-        # Launch the editor
-        success = edit_file_with_comments(str(cache_file_path), prompt_files)
+            if success:
+                click.echo(f"New prompt cached for {project_name}")
+            else:
+                click.echo(f"Error: Failed to save prompt.")
 
-        if success:
-            click.echo(f"Prompt saved successfully.")
-        else:
-            click.echo(f"Error: Failed to save prompt.")
+        if save_as is not None:
+            ctx.invoke(save, prompt_slug=save_as)
 
     except Exception as e:
         logger.error(f"Error creating new prompt: {e}")
@@ -380,7 +383,6 @@ def out(
             from prompy.output import output_to_stdout
 
             output_to_stdout(resolved_content)
-            click.echo("---")
 
     except Exception as e:
         logger.error(f"Error outputting prompt: {e}")
