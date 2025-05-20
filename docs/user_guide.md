@@ -14,9 +14,14 @@ This document provides detailed information about using Prompy, a command-line t
 
 ## Core Concepts
 
+`Prompy` provides a simple templating engine optimized for combining markdown files with a simple, but
+expressive syntax.
+
+It also provides some management of these files, on a per project, or per user basis.
+
 ### Prompts and Fragments
 
-Prompy uses two key concepts:
+The files, known as prompt fragments, can be divided into two sets:
 
 1. **One-off Prompts**: Temporary prompts you're working on for immediate use
 2. **Reusable Fragments**: Saved prompt templates that can be referenced and reused
@@ -27,23 +32,157 @@ Prompts are identified by slugs with the format:
 - `$project/name`: Project-specific prompt
 - `$language/name`: Language-specific prompt
 - `fragments/name`: Generic fragment
-- `tasks/name`: Task-specific fragment
+
+## A worked example
+
+To start, we'll make a new prompt fragment which we want to tell the agent in several places:
+
+```markdown
+You know when you are finished when all tests pass.
+```
+
+To make the tutorial easier to follow, you can copy this command:
+
+```sh
+echo "You know when you are finished when all tests pass." | prompy new --save generic/all-tests-pass
+```
+
+This saves the markdown into a prompt called `generic/all-tests-pass`.
+
+Now you can start a new prompt with the following command:
+
+```sh
+prompy new
+```
+
+This will open an editor, which you can paste the following:
+
+```markdown
+1. Implement some functionality.
+2. @generic/all-tests-pass
+```
+
+Once you save and quit the editor, you can use the shell command to get the expanded prompt:
+
+```sh
+prompy out
+```
+
+This will render:
+
+```markdown
+1. Implement some functionality.
+2. You know when you are finished when all tests pass.
+```
+
+You can get this into your clipboard and paste it into your prompt box.
+
+```sh
+prompy out --pbcopy
+```
+
+or just:
+
+```sh
+prompy pbcopy
+```
+
+We can save this prompt for later re-use:
+
+```sh
+prompy save implement-my-feature
+```
+
+## More advanced
+
+Now we have a fragment of a prompt put into another. These can be nested arbitrarily deep.
+
+Let's say that the running the tests requires a set up step, which only is needed once per prompt. From experience, Copilot gets confused if the steps aren't added: it gets there in the end, but spends a long time finding out what we could have told it.
+
+We can define a project specific set up. In our example, we use `uv`. So let's define a prompt for the project:
+
+```markdown
+uv venv && uv sync --all-extras && source .venv/bin/activate
+```
+
+We can launch an editor to paste the above command into:
+
+```sh
+prompy new
+```
+
+Then save it as a project specific file:
+
+```sh
+prompy save '$project/init-shell'
+```
+
+OR, we can do the whole thing with:
+
+```sh
+echo "uv venv && uv sync --all-extras && source .venv/bin/activate" | prompy new --save '$project/init-shell'
+```
+
+Let's make another prompt fragment to tell the LLM to use this:
+
+```sh
+echo 'Run the following command first: `@$project/init-shell`' | prompy new --save generic/init-shell
+```
+
+Now, let's go back to our original example prompt:
+
+```sh
+prompy edit implement-my-feature
+```
+
+```markdown
+1. @generic/init-shell
+2. Implement some functionality.
+3. @generic/all-tests-pass
+```
+
+Finally, we can run:
+
+```sh
+prompy out implement-my-feature
+```
+
+This expands to something you can paste into a LLM prompt.
+
+```markdown
+1. Run the following command first: `uv venv && uv sync --all-extras && source .venv/bin/activate`
+2. Implement some functionality.
+3. You know when you are finished when all tests pass.
+```
 
 ### Directory Structure
 
 ```
 $PROMPY_CONFIG_DIR/
 ├── prompts/
-│   ├── fragments/       # Generic reusable fragments
 │   ├── languages/       # Language-specific fragments
 │   ├── projects/        # Project-specific fragments
-│   └── tasks/           # Task-specific fragments
+│   └── fragments/       # Generic reusable fragments
 ├── cache/               # Cache for one-off prompts
 │   └── $project/        # Project-specific cache
 └── detections.yaml      # Language detection rules
 ```
 
-Project-specific prompts can also be stored in `$PROJECT_DIR/.prompy/`.
+Project-specific prompts can also be stored in `$PROJECT_DIR/.prompy/`. This optional directory is
+structured slightly differently:
+
+```
+$PROJECT_DIR/
+└── .prompy
+    ├── project/       # Generic reusable fragments
+    ├── environment/       # Language-specific fragments
+    └── fragments/           # Task-specific fragments
+
+```
+
+The `$PROJECT_DIR` is defined as the first directory with the `.git` directory, starting with the current directory, then walking back up to the root.
+
+If the `$PROJECT_DIR` contains a directory called `.prompy`, then files are saved there.
 
 ## Command Reference
 
@@ -67,19 +206,19 @@ prompy [options] [COMMAND]
 #### `new` - Start a new prompt
 
 ```bash
-prompy new [TEMPLATE_SLUG]
+prompy new [STARTER_SLUG] [--save NEW_PROMPT_SLUG]
 ```
 
 Creates a new one-off prompt, optionally using an existing prompt as a template. Clears any existing cached prompt for the current project.
 
 Options:
-- `TEMPLATE_SLUG`: Optional - an existing prompt to use as a template
+- `STARTER_SLUG`: Optional - an existing prompt to use as a starting point
 
 Examples:
 ```bash
 prompy new
-prompy new fragments/common/base
-prompy new python/class
+prompy new generic/run-all-tests
+prompy new '$project/init-shell'
 ```
 
 #### `edit` - Edit a prompt
@@ -115,7 +254,7 @@ Options:
 Examples:
 ```bash
 prompy out
-prompy out fragments/code-review
+prompy out code-review
 prompy out --file my-prompt.md
 prompy out --pbcopy
 ```
@@ -134,7 +273,7 @@ Options:
 Examples:
 ```bash
 prompy pbcopy
-prompy pbcopy fragments/code-review
+prompy pbcopy code-review
 ```
 
 ### Managing Reusable Prompts
@@ -176,8 +315,8 @@ Options:
 
 Examples:
 ```bash
-prompy save fragments/my-new-prompt
-prompy save python/snippets/error-handling --description "Error handling examples" --category errors
+prompy save my-new-prompt
+prompy save '$language/snippets/error-handling' --description "Error handling examples" --category errors
 ```
 
 #### `mv` - Move/rename a prompt
@@ -188,6 +327,8 @@ prompy mv SOURCE_SLUG DEST_SLUG [--force]
 
 Moves or renames a prompt from one location to another.
 
+Care has been taken to make sure that references to the old prompt are changed in other prompts.
+
 Options:
 - `SOURCE_SLUG`: Current location of the prompt
 - `DEST_SLUG`: New location for the prompt
@@ -195,8 +336,8 @@ Options:
 
 Examples:
 ```bash
-prompy mv fragments/old-name fragments/new-name
-prompy mv python/old-prompt javascript/new-prompt
+prompy mv old-name new-name
+prompy mv '$project/init-shell' '$language/init-shell-uv'
 ```
 
 #### `cp` - Copy a prompt
@@ -214,7 +355,7 @@ Options:
 
 Examples:
 ```bash
-prompy cp fragments/template python/my-template
+prompy cp template my-template
 ```
 
 #### `rm` - Remove a prompt
@@ -282,19 +423,19 @@ Prompt fragments are stored as markdown files with YAML frontmatter:
 description: A description of the prompt
 categories: [category1, category2]
 arguments:
-  arg1: Description of the first argument
-  arg2: Description of the second argument (optional)
+  arg1: Default value
+  arg2: # required
 ---
 
 # Markdown content goes here
 
-This is a template that can use {{arg1}} and {{arg2}} variables.
+This is a template that can use $arg1 and $arg2 variables.
 ```
 
 ### Arguments
 
-Arguments are passed to templates and can be referenced using Jinja2-style syntax:
-- `{{argument_name}}`: Will be replaced with the argument value
+Arguments are passed to templates and can be referenced:
+- `$argument_name`: Will be replaced with the argument value
 - Default values can be provided within the fragment reference
 
 ## Fragment References
@@ -320,7 +461,7 @@ The basic syntax is:
 
 Arguments can be:
 - String literals: `"value"` or `'value'`
-- Variables from the parent template: `{{variable}}`
+- Variables from the parent template: `$variable`
 - Omitted (if they have defaults)
 
 ## Language Detection
