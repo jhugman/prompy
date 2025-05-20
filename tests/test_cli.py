@@ -60,8 +60,7 @@ def test_new_command(mock_cli_env):
         if hasattr(result, "exception") and result.exception:
             print(f"Exception: {result.exception}")
         assert result.exit_code == 0
-        assert "Created new prompt file for project: test-project" in result.output
-        assert "Prompt saved successfully" in result.output
+        assert "New prompt cached for test-project" in result.output
 
 
 def test_edit_command(mock_cli_env):
@@ -207,6 +206,5 @@ def test_new_command_with_editor(mock_cli_env):
         result = runner.invoke(cli, ["--project", "test-project", "new"])
 
         assert result.exit_code == 0
-        assert "Created new prompt file for project: test-project" in result.output
-        assert "Prompt saved successfully" in result.output
+        assert "New prompt cached for test-project" in result.output
         mock_edit.assert_called_once()

@@ -50,7 +50,7 @@ def test_new_command_with_cache(mock_cache_env):
         result = runner.invoke(cli, ["--project", "test-project", "new"])
 
         assert result.exit_code == 0
-        assert "Created new prompt file for project: test-project" in result.output
+        assert "New prompt cached for test-project" in result.output
 
         # Check that the cache file was created
         cache_file = cache_dir / "test-project" / "CURRENT_FILE.md"
