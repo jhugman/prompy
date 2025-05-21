@@ -226,9 +226,9 @@ args:
 ---
 Something something the following commands run cleanly:
 
-- $tasks
+{{ tasks }}
 
-Then call out "All done $name!"
+Then call out "All done {{ name }}!"
 ```
 
 ## Editor Experience
@@ -242,7 +242,7 @@ PROMPY AVAILABLE FRAGMENTS:
 PROJECT FRAGMENTS (my-project):
   @project/integration-tests
     Runs the standard integration test suite
-  @project/setup-env(version=)
+  @project/setup-env(version="latest")
     Sets up the development environment
 
 LANGUAGE FRAGMENTS (detected: python):
@@ -263,10 +263,10 @@ FRAGMENTS:
     General code refactoring template
 
 SYNTAX:
-  @fragment-name(arg1, key=value)
-  @path/to/fragment
-  @$project/fragment
-  @$language/fragment
+  {{ @fragment-name(arg1, key=value) }}
+  {{ @path/to/fragment() }}
+  {{ @$project/fragment() }}
+  {{ @$language/fragment() }}
 
 This comment section will be removed from the final prompt.
 -->
@@ -284,7 +284,7 @@ This comment section will be removed from the final prompt.
    - Load the appropriate template or cached file
 
 2. **Editor Session**:
-   - Prepopulate the editor with the selected template and help comments
+   - Pre-populate the editor with the selected template and help comments
    - Launch the user's default `$EDITOR`
    - Wait for the user to save and exit
 
