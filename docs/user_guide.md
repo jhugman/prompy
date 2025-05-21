@@ -59,7 +59,7 @@ This will open an editor, which you can paste the following:
 
 ```markdown
 1. Implement some functionality.
-2. @generic/all-tests-pass
+2. {{ @generic/all-tests-pass() }}
 ```
 
 Once you save and quit the editor, you can use the shell command to get the expanded prompt:
@@ -126,7 +126,7 @@ echo "uv venv && uv sync --all-extras && source .venv/bin/activate" | prompy new
 Let's make another prompt fragment to tell the LLM to use this:
 
 ```sh
-echo 'Run the following command first: `@$project/init-shell`' | prompy new --save generic/init-shell
+echo 'Run the following command first: `{{ @$project/init-shell() }}`' | prompy new --save generic/init-shell
 ```
 
 Now, let's go back to our original example prompt:
@@ -136,9 +136,9 @@ prompy edit implement-my-feature
 ```
 
 ```markdown
-1. @generic/init-shell
+1. {{ @generic/init-shell() }}
 2. Implement some functionality.
-3. @generic/all-tests-pass
+3. {{ @generic/all-tests-pass() }}
 ```
 
 Finally, we can run:
@@ -440,29 +440,63 @@ Arguments are passed to templates and can be referenced:
 
 ## Fragment References
 
-Reference other fragments using the `@fragment-name` syntax:
+Reference other fragments using the Jinja2 syntax:
 
 ```markdown
-@fragments/common-header(project="MyProject", description="A tool for managing widgets")
+{{ @fragments/common-header(project="MyProject", description="A tool for managing widgets") }}
 
-# Main content here
+# Main content here with Jinja2 features
+{% for example in ["basic", "advanced"] %}
+  ## {{ example|capitalize }} Example
+  {{ @fragments/code-example(language="python", type=example) }}
+{% endfor %}
 
-@fragments/code-example(language="python")
-
-@fragments/common-footer
+{{ @fragments/common-footer() }}
 ```
 
 ### Reference Syntax
 
 The basic syntax is:
 ```
-@slug(arg1="value1", arg2="value2")
+{{ @slug(arg1="value1", arg2="value2") }}
 ```
 
 Arguments can be:
 - String literals: `"value"` or `'value'`
-- Variables from the parent template: `$variable`
+- Variables from the parent template: `variable`
 - Omitted (if they have defaults)
+- Other fragments for nested inclusion: e.g.
+    `@another-fragment`, `@another-fragment-with-arguments(arg1='foo')`
+
+### Jinja2 Features
+
+With the Jinja2-enhanced syntax, you can use powerful templating features:
+
+#### Conditionals
+
+```markdown
+{% if advanced_user %}
+  {{ @fragments/advanced-instructions() }}
+{% else %}
+  {{ @fragments/basic-instructions() }}
+{% endif %}
+```
+
+#### Loops
+
+```markdown
+{% for language in ["python", "javascript", "rust"] %}
+  ## {{ language|capitalize }} Example
+  {{ @fragments/code-example(language=language) }}
+{% endfor %}
+```
+
+#### Variables
+
+```markdown
+{% set project_name = "MyProject" %}
+{{ @fragments/common-header(project=project_name) }}
+```
 
 ## Language Detection
 
