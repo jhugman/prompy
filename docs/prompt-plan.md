@@ -111,7 +111,7 @@ In this prompt, we'll implement the core classes for representing and parsing pr
    - Include methods to save and load from disk
 
 2. Implement basic slug parsing:
-   - Create methods to parse prompt slugs (e.g., '$project/fragment', '$language/fragment')
+   - Create methods to parse prompt slugs (e.g., 'project/fragment', 'language/fragment')
    - Resolve slugs to file paths based on the configuration
 
 3. Write unit tests:
@@ -259,7 +259,7 @@ Tasks:
 In this prompt, implement the caching system for one-off prompts and in-progress work. This will allow users to maintain state between sessions.
 
 1. Implement the cache directory structure:
-   - Create $PROMPY_CONFIG_DIR/cache/$project/ directories
+   - Create $PROMPY_CONFIG_DIR/cache/project/ directories
    - Handle the CURRENT_FILE.md for in-progress prompts
 
 2. Create functions to manage cache files:

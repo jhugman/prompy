@@ -19,7 +19,7 @@ The heart of the system is a templating engine which is a Jinja2 and a custom ex
    - Can reference other prompt fragments (recursive resolution)
 
 3. **Caching**
-   - Uses `$PROMPY_CONFIG_DIR/cache/$project/CURRENT_FILE.md` for in-progress prompts
+   - Uses `$PROMPY_CONFIG_DIR/cache/project/CURRENT_FILE.md` for in-progress prompts
    - Supports starting fresh with the `new` subcommand.
 
 4. **Error Handling**
@@ -148,7 +148,7 @@ Edit language detection rules
   ```
 - Save the current one-off prompt as a reusable prompt:
   ```bash
-  prompy save $project/my-prompt
+  prompy save project/my-prompt
   ```
 
 #### Reusable Prompts
@@ -170,27 +170,27 @@ Edit language detection rules
   ```
 - Move the prompt to a new location:
   ```bash
-  prompy mv \$project/refactoring-small \$project/refactoring/small
+  prompy mv \project/refactoring-small \project/refactoring/small
   ```
 - Remove an existing prompt:
   ```bash
-  prompy rm \$project/refactoring-small
+  prompy rm \project/refactoring-small
   ```
 - Copy a prompt to a new location:
   ```bash
-  prompy cp \$language/refactoring-small \$project/refactoring/small
+  prompy cp \language/refactoring-small \project/refactoring/small
   ```
 
 ## Prompt Fragment Syntax
 - `@fragment-name(arg1, key=value)` for fragment inclusion
 - `@path/to/fragment` for nested paths
-- `@$project/fragment` for project-specific fragments
-- `@$language/fragment` for language-specific fragments
+- `@project/fragment` for project-specific fragments
+- `@language/fragment` for language-specific fragments
 - When no arguments are needed: `@fragment-name`
 
 ### Arguments for fragments
 - `"strings"`, enclosed in `'` or `"`.
-- Other fragments, nesting arbitrarily. e.g. `@fragment-name(@$project/other-fragment("foo"), key=value)`
+- Other fragments, nesting arbitrarily. e.g. `@fragment-name(@project/other-fragment("foo"), key=value)`
 
 ## Directory Structure
 ```
@@ -246,9 +246,9 @@ PROJECT FRAGMENTS (my-project):
     Sets up the development environment
 
 LANGUAGE FRAGMENTS (detected: python):
-  @$language/start
+  @language/start
     Command for starting a prompt
-  @$language/test
+  @language/test
     Task for running a test
 
 TASKS:
@@ -265,8 +265,8 @@ FRAGMENTS:
 SYNTAX:
   {{ @fragment-name(arg1, key=value) }}
   {{ @path/to/fragment() }}
-  {{ @$project/fragment() }}
-  {{ @$language/fragment() }}
+  {{ @project/fragment() }}
+  {{ @language/fragment() }}
 
 This comment section will be removed from the final prompt.
 -->
