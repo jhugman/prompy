@@ -36,21 +36,11 @@ class TestPromptRender:
         # No fragment lookups should have happened
         mock_context.load_slug.assert_not_called()
 
-    @patch("prompy.fragment_parser.find_fragment_references")
-    def test_render_with_fragment(self, mock_find_refs):
+    def test_render_with_fragment(self):
         """Test rendering a template with a single fragment reference."""
-        # Setup mock fragment reference
-        mock_ref = MagicMock()
-        mock_ref.slug = "other-fragment"
-        mock_ref.args = []
-        mock_ref.kwargs = {}
-        mock_ref.start_pos = 10
-        mock_ref.end_pos = 25
-        mock_find_refs.return_value = [mock_ref]
-
         # Setup prompt files
         main_file = PromptFile(
-            slug="main", markdown_template="Template: @other-fragment here"
+            slug="main", markdown_template="Template: {{ @other-fragment }} here"
         )
 
         fragment_file = PromptFile(
@@ -69,8 +59,6 @@ class TestPromptRender:
 
         # Assert
         mock_context.load_slug.assert_called_once_with("other-fragment")
-        # Because we're using a mock for find_fragment_references, we need to manually
-        # check what the result would be after replacing the reference
         expected = "Template: fragment content here"
         assert result == expected
 
@@ -79,12 +67,12 @@ class TestPromptRender:
         # Setup
         main_file = PromptFile(
             slug="main",
-            markdown_template="Template with @fragment(arg1, key=value) here",
+            markdown_template="Template with {{@fragment(arg1='value1', key='value2')}} here",
         )
 
         fragment_file = PromptFile(
             slug="fragment",
-            markdown_template="Fragment with $1 and $key",
+            markdown_template="Fragment with {{ arg1 }} and {{ key }}",
             arguments={"arg1": None, "key": "default"},
         )
 
@@ -95,41 +83,23 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references to return a realistic fragment reference
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
-
-            mock_ref = FragmentReference(
-                slug="fragment",
-                args=["arg1"],
-                kwargs={"key": "value"},
-                start_pos=14,
-                end_pos=38,
-            )
-            mock_find.return_value = [mock_ref]
-
-            # Render
-            result = renderer.render(mock_context)
+        # Render
+        result = renderer.render(mock_context)
 
         # Assert
         mock_context.load_slug.assert_called_once_with("fragment")
-        # We can't check the exact result without implementing the arg substitution logic
-        # which we haven't done in our simple implementation. Instead, we'll check
-        # that the fragment content is there and the reference is gone.
-        assert "Fragment with" in result
-        assert "@fragment(arg1, key=value)" not in result
-        assert "Fragment with Fragment with arg1 and value here"
+        assert "Template with Fragment with value1 and value2 here" == result
 
     def test_nested_fragments(self):
         """Test rendering a template with nested fragments."""
         # Setup
         main_file = PromptFile(
-            slug="main", markdown_template="Main template with @fragment1"
+            slug="main", markdown_template="Main template with {{@fragment1}}"
         )
 
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 with @fragment2",
+            markdown_template="Fragment1 with {{@fragment2}}",
             arguments={},
         )
 
@@ -147,22 +117,8 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references to return realistic fragment references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
-
-            def mock_find_side_effect(template):
-                if "Main template with @fragment1" in template:
-                    return [FragmentReference("fragment1", [], {}, 17, 27)]
-                elif "Fragment1 with @fragment2" in template:
-                    return [FragmentReference("fragment2", [], {}, 15, 25)]
-                else:
-                    return []
-
-            mock_find.side_effect = mock_find_side_effect
-
-            # Render
-            result = renderer.render(mock_context)
+        # Render
+        result = renderer.render(mock_context)
 
         # Assert
         assert mock_context.load_slug.call_count == 2
@@ -173,18 +129,18 @@ class TestPromptRender:
         # Setup
         main_file = PromptFile(
             slug="main",
-            markdown_template="Main template with @fragment1(param='outer')",
+            markdown_template="Main template with {{@fragment1(param='outer')}}",
         )
 
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 with param=$param and @fragment2(inner_param=$param)",
+            markdown_template="Fragment1 with param={{param}} and {{@fragment2(inner_param=param)}}",
             arguments={"param": None},  # Required parameter
         )
 
         fragment2_file = PromptFile(
             slug="fragment2",
-            markdown_template="Fragment2 with $inner_param",
+            markdown_template="Fragment2 with {{inner_param}}",
             arguments={"inner_param": None},  # Required parameter
         )
 
@@ -198,31 +154,8 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references to return realistic fragment references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
-
-            def mock_find_side_effect(template):
-                if "Main template with @fragment1(param='outer')" in template:
-                    return [
-                        FragmentReference("fragment1", [], {"param": "outer"}, 17, 41)
-                    ]
-                elif (
-                    "Fragment1 with param=$param and @fragment2(inner_param=$param)"
-                    in template
-                ):
-                    return [
-                        FragmentReference(
-                            "fragment2", [], {"inner_param": "outer"}, 30, 59
-                        )
-                    ]
-                else:
-                    return []
-
-            mock_find.side_effect = mock_find_side_effect
-
-            # Render
-            result = renderer.render(mock_context)
+        # Render
+        result = renderer.render(mock_context)
 
         # Assert
         assert mock_context.load_slug.call_count == 2
@@ -235,17 +168,19 @@ class TestPromptRender:
     def test_cycle_detection(self):
         """Test that the renderer detects cycles in fragment references."""
         # Setup cyclic fragments
-        main_file = PromptFile(slug="main", markdown_template="Main with @fragment1")
+        main_file = PromptFile(
+            slug="main", markdown_template="Main with {{@fragment1}}"
+        )
 
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 with @fragment2",
+            markdown_template="Fragment1 with {{@fragment2}}",
             arguments={},
         )
 
         fragment2_file = PromptFile(
             slug="fragment2",
-            markdown_template="Fragment2 with @main",  # Cycle back to main
+            markdown_template="Fragment2 with {{@main}}",  # Cycle back to main
             arguments={},
         )
 
@@ -260,39 +195,25 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references to return realistic fragment references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
+        # Render and expect an error
+        with pytest.raises(ValueError) as excinfo:
+            renderer.render(mock_context)
 
-            def mock_find_side_effect(template):
-                if "Main with @fragment1" in template:
-                    return [FragmentReference("fragment1", [], {}, 10, 20)]
-                elif "Fragment1 with @fragment2" in template:
-                    return [FragmentReference("fragment2", [], {}, 15, 25)]
-                elif "Fragment2 with @main" in template:
-                    return [FragmentReference("main", [], {}, 15, 20)]
-                else:
-                    return []
-
-            mock_find.side_effect = mock_find_side_effect
-
-            # Render and expect an error
-            with pytest.raises(ValueError) as excinfo:
-                renderer.render(mock_context)
-
-            # Check that the error message mentions the cycle
-            assert "Cyclic reference detected" in str(excinfo.value)
-            # Check that the error message shows the full cycle path
-            assert "@main -> @fragment1 -> @fragment2 -> @main" in str(excinfo.value)
+        # Check that the error message mentions the cycle
+        assert "Cyclic reference detected" in str(excinfo.value)
+        # Check that the error message shows the full cycle path
+        assert "@main -> @fragment1 -> @fragment2 -> @main" in str(excinfo.value)
 
     def test_missing_required_args(self):
         """Test that the renderer validates required arguments."""
         # Setup
-        main_file = PromptFile(slug="main", markdown_template="Template with @fragment")
+        main_file = PromptFile(
+            slug="main", markdown_template="Template with {{@fragment}}"
+        )
 
         fragment_file = PromptFile(
             slug="fragment",
-            markdown_template="Fragment with $required_arg",
+            markdown_template="Fragment with {{required_arg}}",
             arguments={"required_arg": None},  # Required arg (no default)
         )
 
@@ -303,28 +224,23 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
+        # Render and expect an error
+        with pytest.raises(ValueError) as excinfo:
+            renderer.render(mock_context)
 
-            mock_ref = FragmentReference("fragment", [], {}, 14, 23)
-            mock_find.return_value = [mock_ref]
-
-            # Render and expect an error
-            with pytest.raises(ValueError) as excinfo:
-                renderer.render(mock_context)
-
-            # Check that the error message mentions the missing argument
-            assert "Missing required argument 'required_arg'" in str(excinfo.value)
+        # Check that the error message mentions the missing argument
+        assert "Missing required argument 'required_arg'" in str(excinfo.value)
 
     def test_default_args(self):
         """Test that default arguments are applied correctly."""
         # Setup
-        main_file = PromptFile(slug="main", markdown_template="Template with @fragment")
+        main_file = PromptFile(
+            slug="main", markdown_template="Template with {{@fragment}}"
+        )
 
         fragment_file = PromptFile(
             slug="fragment",
-            markdown_template="Fragment with default arg",
+            markdown_template="Fragment with default {{arg}}",
             arguments={"arg": "default"},  # Arg with default value
         )
 
@@ -335,35 +251,30 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
-
-            mock_ref = FragmentReference("fragment", [], {}, 14, 23)
-            mock_find.return_value = [mock_ref]
-
-            # Render
-            result = renderer.render(mock_context)
+        # Render
+        result = renderer.render(mock_context)
 
         # Assert no error and fragment content is in the result
-        assert "Fragment with default arg" in result
+        assert "Fragment with default default" in result
 
     def test_complex_nested_arguments(self):
         """Test rendering with complex nested argument references."""
         # Setup
         main_file = PromptFile(
             slug="main",
-            markdown_template="Main with @outer(first='value1', second='value2')",
+            markdown_template="Main with {{@outer(first='value1', second='value2')}}",
         )
 
         outer_file = PromptFile(
             slug="outer",
-            markdown_template="Outer[$first, $second] with @inner(param=$second)",
+            markdown_template="Outer[{{first}}, {{second}}] with {{@inner(param=second)}}",
             arguments={"first": None, "second": None},
         )
 
         inner_file = PromptFile(
-            slug="inner", markdown_template="Inner($param)", arguments={"param": None}
+            slug="inner",
+            markdown_template="Inner({{param}})",
+            arguments={"param": None},
         )
 
         # Mock context to return our fragments
@@ -376,28 +287,8 @@ class TestPromptRender:
         # Create renderer
         renderer = PromptRender(main_file)
 
-        # Mock find_fragment_references to return realistic fragment references
-        with patch("prompy.fragment_parser.find_fragment_references") as mock_find:
-            from prompy.fragment_parser import FragmentReference
-
-            def mock_find_side_effect(template):
-                if "Main with @outer" in template:
-                    # The outer fragment reference in the main template
-                    return [
-                        FragmentReference(
-                            "outer", [], {"first": "value1", "second": "value2"}, 10, 50
-                        )
-                    ]
-                elif "Outer[" in template and "with @inner" in template:
-                    # The inner fragment reference inside the outer fragment
-                    return [FragmentReference("inner", [], {"param": "value2"}, 25, 45)]
-                else:
-                    return []
-
-            mock_find.side_effect = mock_find_side_effect
-
-            # Render the template with the nested fragments
-            result = renderer.render(mock_context)
+        # Render the template with the nested fragments
+        result = renderer.render(mock_context)
 
         # Assert that both fragments were resolved
         assert mock_context.load_slug.call_count == 2
@@ -409,12 +300,12 @@ class TestPromptRender:
         """Test rendering a template with nested fragments using real fragment parser."""
         # Setup
         main_file = PromptFile(
-            slug="main", markdown_template="Main template with @fragment1"
+            slug="main", markdown_template="Main template with {{@fragment1}}"
         )
 
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 with @fragment2",
+            markdown_template="Fragment1 with {{@fragment2}}",
             arguments={},
         )
 
@@ -444,18 +335,18 @@ class TestPromptRender:
         # Setup
         main_file = PromptFile(
             slug="main",
-            markdown_template="Main template with @fragment1(param='outer')",
+            markdown_template="Main template with {{@fragment1(param='outer')}}",
         )
 
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 with param=$param and @fragment2(inner_param=$param)",
+            markdown_template="Fragment1 with param={{param}} and {{@fragment2(inner_param=param)}}",
             arguments={"param": None},  # Required parameter
         )
 
         fragment2_file = PromptFile(
             slug="fragment2",
-            markdown_template="Fragment2 with $inner_param",
+            markdown_template="Fragment2 with {{inner_param}}",
             arguments={"inner_param": None},  # Required parameter
         )
 
@@ -484,7 +375,8 @@ class TestPromptRender:
         """Test rendering a template with multiple fragments at the same level using real fragment parser."""
         # Setup
         main_file = PromptFile(
-            slug="main", markdown_template="Start @fragment1 middle @fragment2 end"
+            slug="main",
+            markdown_template="Start {{@fragment1}} middle {{@fragment2}} end",
         )
 
         fragment1_file = PromptFile(
@@ -518,43 +410,43 @@ class TestPromptRender:
         main_file = PromptFile(
             slug="main",
             markdown_template=(
-                "Start with @fragment1(name='first') "
-                "then @fragment2(value=42) "
-                "and finally @fragment3(items='one')"
+                "Start with {{@fragment1(name='first')}} "
+                "then {{@fragment2(value=42)}} "
+                "and finally {{@fragment3(items='one')}}"
             ),
         )
 
         # First fragment with nested reference
         fragment1_file = PromptFile(
             slug="fragment1",
-            markdown_template="Fragment1 ($name) contains @nested1(inherited=$name)",
+            markdown_template="Fragment1 ({{name}}) contains {{@nested1(inherited=name)}}",
             arguments={"name": None},  # Required parameter
         )
 
         # Second fragment with no nesting
         fragment2_file = PromptFile(
             slug="fragment2",
-            markdown_template="Fragment2 with value=$value",
+            markdown_template="Fragment2 with value={{value}}",
             arguments={"value": "default"},  # Parameter with default
         )
 
         # Third fragment with nested reference that has its own nesting
         fragment3_file = PromptFile(
             slug="fragment3",
-            markdown_template="Fragment3 with @nested2(list=$items)",
+            markdown_template="Fragment3 with {{@nested2(list=items)}}",
             arguments={"items": None},  # Required parameter
         )
 
         # Nested fragments
         nested1_file = PromptFile(
             slug="nested1",
-            markdown_template="Nested1 with $inherited",
+            markdown_template="Nested1 with {{inherited}}",
             arguments={"inherited": "unknown"},  # Parameter with default
         )
 
         nested2_file = PromptFile(
             slug="nested2",
-            markdown_template="Nested2 listing $list with @nested3",
+            markdown_template="Nested2 listing {{list}} with {{@nested3}}",
             arguments={"list": None},  # Required parameter
         )
 
@@ -599,12 +491,12 @@ class TestPromptRender:
         main_file = PromptFile(
             slug="main",
             # Let's simplify and use a literal quoted argument
-            markdown_template="Main with @list_fragment(items='a,b,c')",
+            markdown_template="Main with {{@list_fragment(items='a,b,c')}}",
         )
 
         list_fragment = PromptFile(
             slug="list_fragment",
-            markdown_template="Items: $items",
+            markdown_template="Items: {{ items }}",
             arguments={"items": None},  # Required parameter
         )
 

@@ -1,15 +1,24 @@
 """
 Functions for finding and updating references to fragments in prompt files.
+
+This module implements functions to find and update @slug references in templates.
+Supports both Jinja2-style ({{ @slug }}) and legacy-style (@slug) references.
 """
 
 import logging
+import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Pattern, Set, Union
 
-from prompy.fragment_parser import FragmentReference, find_fragment_references
-from prompy.prompt_file import PromptContext, PromptFile
+from .prompt_file import PromptContext, PromptFile
 
 logger = logging.getLogger(__name__)
+
+# Regular expression to find fragment references in Jinja2 template expressions
+# This matches: {{ @slug }} or {{ @slug(args) }}
+JINJA_FRAGMENT_REF_PATTERN: Pattern = re.compile(
+    r"{{(.*?)@([a-zA-Z0-9_\-/$]+)(\(.*?\))?.*?}}"
+)
 
 
 def update_references_in_file(file_path: Path, old_slug: str, new_slug: str) -> bool:
@@ -29,15 +38,24 @@ def update_references_in_file(file_path: Path, old_slug: str, new_slug: str) -> 
         prompt_file = PromptFile.load(file_path)
         content = prompt_file.markdown_template
 
-        # Find all fragment references
-        references = find_fragment_references(content)
+        # Find all references (both Jinja2 and legacy style)
+        matches = []
 
-        # Check if any references match the old slug
-        matches = [
-            ref
-            for ref in references
-            if isinstance(ref, FragmentReference) and ref.slug == old_slug
-        ]
+        # Check for Jinja2-style references
+        for match in re.finditer(JINJA_FRAGMENT_REF_PATTERN, content):
+            # Extract the slug from the match
+            slug = match.group(2)
+            if slug == old_slug:
+                # Store the match information
+                matches.append(
+                    {
+                        "start": match.start(),
+                        "end": match.end(),
+                        "full_match": match.group(0),
+                        "args": match.group(3) or "",
+                        "is_jinja": True,
+                    }
+                )
 
         if not matches:
             return False
@@ -45,23 +63,17 @@ def update_references_in_file(file_path: Path, old_slug: str, new_slug: str) -> 
         # Update each reference
         # We need to work backwards to prevent position shifts
         updates = []
-        for ref in sorted(matches, key=lambda r: r.start_pos, reverse=True):
+        for match in sorted(matches, key=lambda m: m["start"], reverse=True):
             # Create updated reference text
-            old_ref_text = content[ref.start_pos : ref.end_pos]
-            new_ref_text = f"@{new_slug}"
+            old_ref_text = match["full_match"]
+            if match["is_jinja"]:
+                # Jinja style: {{ @old-slug(...) }} -> {{ @new-slug(...) }}
+                new_ref_text = old_ref_text.replace(f"@{old_slug}", f"@{new_slug}")
+            else:
+                # Legacy style: @old-slug(...) -> @new-slug(...)
+                new_ref_text = f"@{new_slug}{match['args']}"
 
-            # Add args if present
-            if ref.args or ref.kwargs:
-                args_parts = []
-                # Add positional args
-                args_parts.extend([str(arg) for arg in ref.args])
-                # Add keyword args
-                args_parts.extend(
-                    [f"{key}={value}" for key, value in ref.kwargs.items()]
-                )
-                new_ref_text += f"({', '.join(args_parts)})"
-
-            updates.append((ref.start_pos, ref.end_pos, new_ref_text))
+            updates.append((match["start"], match["end"], new_ref_text))
 
         # Apply updates from end to beginning to maintain position integrity
         modified_content = content

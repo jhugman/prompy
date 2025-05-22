@@ -20,14 +20,14 @@ description: A file with references
 ---
 This is a test file with multiple references:
 
-@test-fragment
-@test-fragment(arg1)
-@test-fragment(arg1, key=value)
-@other-fragment
+{{@test-fragment}}
+{{ @test-fragment(arg1) }}
+{{@test-fragment(arg1, key=value) }}
+{{ @other-fragment}}
 
 And some non-references:
-@@test-fragment (escaped)
-@missing-fragment
+@test-fragment (non braces)
+{{@missing-fragment}}
 """
     with open(file_path, "w") as f:
         f.write(content)
@@ -47,7 +47,7 @@ And some non-references:
     assert "@new-fragment(arg1)" in new_content
     assert "@new-fragment(arg1, key=value)" in new_content
     assert "@other-fragment" in new_content  # Unchanged
-    assert "@@test-fragment" in new_content  # Escaped, unchanged
+    assert "@test-fragment (non braces)" in new_content  # Escaped, unchanged
     assert "@missing-fragment" in new_content  # Not matching, unchanged
 
 
