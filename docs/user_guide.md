@@ -29,8 +29,8 @@ The files, known as prompt fragments, can be divided into two sets:
 ### Slugs
 
 Prompts are identified by slugs with the format:
-- `$project/name`: Project-specific prompt
-- `$language/name`: Language-specific prompt
+- `project/name`: Project-specific prompt
+- `language/name`: Language-specific prompt
 - `fragments/name`: Generic fragment
 
 ## A worked example
@@ -114,19 +114,19 @@ prompy new
 Then save it as a project specific file:
 
 ```sh
-prompy save '$project/init-shell'
+prompy save 'project/init-shell'
 ```
 
 OR, we can do the whole thing with:
 
 ```sh
-echo "uv venv && uv sync --all-extras && source .venv/bin/activate" | prompy new --save '$project/init-shell'
+echo "uv venv && uv sync --all-extras && source .venv/bin/activate" | prompy new --save 'project/init-shell'
 ```
 
 Let's make another prompt fragment to tell the LLM to use this:
 
 ```sh
-echo 'Run the following command first: `{{ @$project/init-shell() }}`' | prompy new --save generic/init-shell
+echo 'Run the following command first: `{{ @project/init-shell() }}`' | prompy new --save generic/init-shell
 ```
 
 Now, let's go back to our original example prompt:
@@ -164,7 +164,7 @@ $PROMPY_CONFIG_DIR/
 │   ├── projects/        # Project-specific fragments
 │   └── fragments/       # Generic reusable fragments
 ├── cache/               # Cache for one-off prompts
-│   └── $project/        # Project-specific cache
+│   └── project/        # Project-specific cache
 └── detections.yaml      # Language detection rules
 ```
 
@@ -218,7 +218,7 @@ Examples:
 ```bash
 prompy new
 prompy new generic/run-all-tests
-prompy new '$project/init-shell'
+prompy new 'project/init-shell'
 ```
 
 #### `edit` - Edit a prompt
@@ -316,7 +316,7 @@ Options:
 Examples:
 ```bash
 prompy save my-new-prompt
-prompy save '$language/snippets/error-handling' --description "Error handling examples" --category errors
+prompy save 'language/snippets/error-handling' --description "Error handling examples" --category errors
 ```
 
 #### `mv` - Move/rename a prompt
@@ -337,7 +337,7 @@ Options:
 Examples:
 ```bash
 prompy mv old-name new-name
-prompy mv '$project/init-shell' '$language/init-shell-uv'
+prompy mv 'project/init-shell' 'language/init-shell-uv'
 ```
 
 #### `cp` - Copy a prompt
