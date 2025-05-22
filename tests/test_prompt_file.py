@@ -157,13 +157,13 @@ def test_prompt_files_collection():
         description="File 1 description",
     )
     file2 = PromptFile(
-        slug="$project/file2",
+        slug="project/file2",
         description="Project file description",
         arguments={"arg1": "default"},
     )
 
     file3 = PromptFile(
-        slug="$language/file3",
+        slug="language/file3",
         description="Language file description",
     )
 
@@ -176,21 +176,21 @@ def test_prompt_files_collection():
 
     # Test getting files
     assert collection.get_file("test/file1") == file1
-    assert collection.get_file("$project/file2") == file2
+    assert collection.get_file("project/file2") == file2
     assert collection.get_file("nonexistent") is None
 
     # Test available slugs
     slugs = collection.available_slugs()
     assert "test/file1" in slugs
-    assert "$project/file2" in slugs
-    assert "$language/file3" in slugs
+    assert "project/file2" in slugs
+    assert "language/file3" in slugs
 
     # Test help text generation
     help_text = collection.help_text()
     assert "PROMPY AVAILABLE FRAGMENTS:" in help_text
-    assert "$project/file2(arg1=default)" in help_text
+    assert "project/file2(arg1=default)" in help_text
     assert "Project file description" in help_text
-    assert "$language/file3" in help_text
+    assert "language/file3" in help_text
     assert "Language file description" in help_text
 
 
@@ -244,16 +244,16 @@ def test_prompt_context():
         )
 
         # Test parse_prompt_slug
-        assert context.parse_prompt_slug("$language/test") == language_file
+        assert context.parse_prompt_slug("language/test") == language_file
         assert context.parse_prompt_slug("fragments/test") == fragment_file
-        assert context.parse_prompt_slug("$project/test") == project_file
+        assert context.parse_prompt_slug("project/test") == project_file
         assert context.parse_prompt_slug("nonexistent") is None
 
         # Test load_slug
-        project_prompt = context.load_slug("$project/test")
+        project_prompt = context.load_slug("project/test")
         assert project_prompt.description == "Project test"
 
-        language_prompt = context.load_slug("$language/test")
+        language_prompt = context.load_slug("language/test")
         assert language_prompt.description == "Language test"
 
         with pytest.raises(FileNotFoundError):
@@ -261,15 +261,15 @@ def test_prompt_context():
 
         # Test load_all
         all_prompts = context.load_all()
-        assert "$project/test" in all_prompts.available_slugs()
-        assert "$language/test" in all_prompts.available_slugs()
+        assert "project/test" in all_prompts.available_slugs()
+        assert "language/test" in all_prompts.available_slugs()
         assert "test" in all_prompts.available_slugs()
 
         # Check that project and language variables were correctly substituted
-        project_file = all_prompts.get_file("$project/test")
+        project_file = all_prompts.get_file("project/test")
         assert project_file is not None
         assert project_file.description == "Project test"
 
-        language_file = all_prompts.get_file("$language/test")
+        language_file = all_prompts.get_file("language/test")
         assert language_file is not None
         assert language_file.description == "Language test"

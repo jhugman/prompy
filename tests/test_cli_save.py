@@ -246,7 +246,7 @@ def test_save_command_with_project_slug(mock_save_env):
 
     with runner.isolated_filesystem():
         result = runner.invoke(
-            cli, ["--project", "test-project", "save", "$project/new-prompt"]
+            cli, ["--project", "test-project", "save", "project/new-prompt"]
         )
 
         assert result.exit_code == 0

@@ -64,9 +64,9 @@ def mock_management_env(tmp_path, monkeypatch):
             return fragments_dir / "renamed-fragment.md"
         elif slug == "copied-fragment":
             return fragments_dir / "copied-fragment.md"
-        elif slug == "$language/test-lang-fragment":
+        elif slug == "language/test-lang-fragment":
             return languages_dir / "test-lang-fragment.md"
-        elif slug == "$project/test-project-fragment":
+        elif slug == "project/test-project-fragment":
             return projects_dir / "test-project-fragment.md"
         return None
 

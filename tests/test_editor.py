@@ -111,7 +111,7 @@ class TestHelpComments:
         context = PromptContext(project_name="test-project", language="python")
 
         # Add a test prompt file
-        test_file = PromptFile(slug="$project/test", description="Test description")
+        test_file = PromptFile(slug="project/test", description="Test description")
         prompt_files = PromptFiles(
             project_name="test-project",
             language_name="python",
@@ -123,7 +123,7 @@ class TestHelpComments:
 
         assert "PROMPY AVAILABLE FRAGMENTS" in result
         assert "PROJECT FRAGMENTS (project: test-project)" in result
-        assert "@$project/test" in result
+        assert "@project/test" in result
         assert "Test description" in result
         assert "This comment section will be removed from the final prompt" in result
 
@@ -148,14 +148,14 @@ PROMPY AVAILABLE FRAGMENTS:
 --------------------------
 
 PROJECT FRAGMENTS (project: test):
-  @$project/test
+  @project/test
     Test description
 
 SYNTAX:
   @fragment-name(arg1, key=value)
   @path/to/fragment
-  @$project/fragment
-  @$language/fragment
+  @project/fragment
+  @language/fragment
 
 This comment section will be removed from the final prompt.
 -->"""
