@@ -1,4 +1,8 @@
-@spec-to-prompt-plan
+---
+description: Make a new prompt plan from the spec.
+---
+
+{{@spec/to-prompt-plan}}
 
 Remember the implementation order should prioritize user-value: get something that the user can see working, and then build upon it.
 

@@ -1,8 +1,9 @@
 ---
 description: Look for the next prompt and perform it
 ---
+{{@rules/all}}
 
-1. @init-shell
+1. {{@steps/init-shell}}
 2. Open **docs/spec.md** for background on the project.
 3. Open **docs/prompt_plan.md** and identify any prompts not marked as completed.
 4. For the next incomplete prompt:

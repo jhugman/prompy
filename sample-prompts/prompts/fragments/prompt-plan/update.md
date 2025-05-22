@@ -1,3 +1,7 @@
+---
+description: Re-do the prompt plan.
+---
+
 The spec has changed, and the codebase is out of sync.
 
 Read the file **docs/spec.md** which is the specification for this project.
