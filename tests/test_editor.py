@@ -15,7 +15,9 @@ from prompy.editor import (
     launch_editor,
     remove_help_comments,
 )
-from prompy.prompt_file import PromptContext, PromptFile, PromptFiles
+from prompy.prompt_context import PromptContext
+from prompy.prompt_file import PromptFile
+from prompy.prompt_files import PromptFiles
 
 
 class TestEditorDetection:

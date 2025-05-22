@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Match, Optional, Set, Tuple, Union, cast
 from jinja2 import Environment, Template, TemplateSyntaxError
 
 from .jinja_extension import create_jinja_environment
-from .prompt_file import PromptContext, PromptFile
+from .prompt_context import PromptContext
+from .prompt_file import PromptFile
 
 
 @dataclass

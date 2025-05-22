@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from prompy.prompt_file import PromptContext
+from prompy.prompt_context import PromptContext
 
 
 def test_parse_prompt_slug_existence():

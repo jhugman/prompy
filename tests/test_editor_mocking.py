@@ -17,7 +17,9 @@ import pytest
 # Import our editor mocking utility
 from utils.editor_mock import EditorMock
 
-from prompy.prompt_file import PromptContext, PromptFile, PromptFiles
+from prompy.prompt_context import PromptContext
+from prompy.prompt_file import PromptFile
+from prompy.prompt_files import PromptFiles
 
 
 class TestEditorMockUtility:

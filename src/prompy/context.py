@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from prompy.config import detect_language, find_project_dir, get_config_dir
-from prompy.prompt_file import PromptContext
+from prompy.prompt_context import PromptContext
 
 
 def create_prompt_context(

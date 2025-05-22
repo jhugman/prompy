@@ -10,7 +10,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Pattern, Set, Union
 
-from .prompt_file import PromptContext, PromptFile
+from .prompt_context import PromptContext
+from .prompt_file import PromptFile
 
 logger = logging.getLogger(__name__)
 

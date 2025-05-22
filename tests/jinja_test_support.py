@@ -8,7 +8,8 @@ import pytest
 from jinja2 import Environment
 
 from prompy.jinja_extension import PrompyExtension, create_jinja_environment
-from prompy.prompt_file import PromptContext, PromptFile
+from prompy.prompt_context import PromptContext
+from prompy.prompt_file import PromptFile
 from prompy.prompt_render import PromptRender
 
 
