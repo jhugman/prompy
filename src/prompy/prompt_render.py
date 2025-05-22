@@ -47,7 +47,6 @@ class PromptRender:
         """
         self.prompt_file = prompt_file
         self.arguments = arguments or {}
-        self._fragment_cache = {}  # Cache to store loaded fragments
 
     def render(self, context: PromptContext) -> str:
         """
@@ -62,18 +61,14 @@ class PromptRender:
         Raises:
             ValueError: If a fragment can't be resolved or there's a cycle
         """
-        # Get the template content
-        template_content = self.prompt_file.markdown_template.strip()
-
-        # Cache to store loaded fragments
-        self._fragment_cache = {}
-
         # Create a Jinja2 environment with our custom extension
         env = create_jinja_environment(context)
 
         # Add the current prompt file slug to the fragment stack to detect cycles
         env.globals["_fragment_stack"] = [self.prompt_file.slug]
 
+        # Get the template content
+        template_content = self.prompt_file.markdown_template.strip()
         # Create a Jinja2 template from the processed template content
         try:
             template = env.from_string(template_content)

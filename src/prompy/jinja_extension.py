@@ -32,13 +32,26 @@ def preprocess_template(source: str) -> str:
 
     def process_expression(match: re.Match) -> str:
         expr = match.group(1)
+
+        # Find position of match in source to determine indentation
+        match_start = match.start()
+        line_start = source.rfind("\n", 0, match_start) + 1
+        indent = source[line_start:match_start]
+
+        # Clean indentation (only keep whitespace)
+        indent_prefix = "".join(c for c in indent if c in " \t")
+
+        # Store the indentation as a global for this fragment reference
+        # Detect if this expression contains a fragment reference
+        has_fragment = re.search(r"@[a-zA-Z0-9_\-/$]+", expr)
+
         # Replace @slug references in this expression
         processed = re.sub(
             r"@([a-zA-Z0-9_\-/$]+)(\(.*?\))?",
             lambda m: (
-                f'include_fragment("{m.group(1)}")'
+                f'include_fragment("{m.group(1)}", indent="{indent_prefix}")'
                 if not m.group(2)
-                else f'include_fragment("{m.group(1)}", {m.group(2)[1:-1]})'
+                else f'include_fragment("{m.group(1)}", {m.group(2)[1:-1]}, indent="{indent_prefix}")'
             ),
             expr,
         )
@@ -93,6 +106,9 @@ class PrompyExtension(Extension):
         """
         # In Jinja2, the context is passed through the render call chain
         # so we need to access it from kwargs or use a thread-local variable
+
+        # Extract indent from kwargs if present
+        indent_prefix = kwargs.pop("indent", "")
 
         # For our implementation, we'll use globals in the environment
         context = self.environment.globals.get("_prompy_context")
@@ -152,6 +168,14 @@ class PrompyExtension(Extension):
 
             # Render the fragment with the context
             result = fragment_template.render(**vars_context)
+
+            # Apply indentation if needed and if there's content with multiple lines
+            if indent_prefix and "\n" in result:
+                # Use Jinja's built-in indent filter
+                # This indents all lines after the first line
+                result = self.environment.filters["indent"](
+                    result, first=False, width=len(indent_prefix)
+                )
 
             # Restore the original stack
             self.environment.globals["_fragment_stack"] = original_stack
