@@ -41,9 +41,9 @@ class PromptFiles:
         Returns:
             Optional[PromptFile]: The prompt file, or None if not found
         """
-        if slug.startswith("$project"):
+        if slug.startswith("project"):
             return self._project_prompts.get(slug)
-        elif slug.startswith("$language") or slug.startswith("$env"):
+        elif slug.startswith("language") or slug.startswith("$env"):
             return self._language_prompts.get(slug)
         else:
             return self._fragment_prompts.get(slug)
@@ -189,8 +189,8 @@ class PromptFiles:
             help_text += "SYNTAX:\n"
             help_text += "  @fragment-name(arg1, key=value)\n"
             help_text += "  @path/to/fragment\n"
-            help_text += "  @$project/fragment\n"
-            help_text += "  @$language/fragment\n\n"
+            help_text += "  @project/fragment\n"
+            help_text += "  @language/fragment\n\n"
 
         return help_text
 

@@ -92,13 +92,13 @@ class PromptContext:
             Optional[Path]: The resolved file path, or None if not found
         """
         # Handle special variables in the slug
-        if self.project_name and (suffix := self._strip_prefix(slug, "$project/")):
+        if self.project_name and (suffix := self._strip_prefix(slug, "project/")):
             # Use project_dirs to search for the file
             return self._search_directories(
                 suffix, self._project_dirs, should_exist, global_only
             )
         elif self.language and (
-            suffix := self._strip_prefix(slug, "$language/")
+            suffix := self._strip_prefix(slug, "language/")
             or self._strip_prefix(slug, "$env/")
         ):
             # Use language_dirs to search for the file
@@ -187,18 +187,18 @@ class PromptContext:
     def collect_paths(
         self, global_only: bool
     ) -> Tuple[dict[str, Path], dict[str, Path], dict[str, Path]]:
-        # Collect language files (from $language/ or $env/)
+        # Collect language files (from language/ or $env/)
         if self.language:
             language_files = self._collect_paths_from_directories(
-                "$language", self._language_dirs, global_only
+                "language", self._language_dirs, global_only
             )
         else:
             language_files = {}
 
-        # Collect project files (from $project/)
+        # Collect project files (from project/)
         if self.project_name:
             project_files = self._collect_paths_from_directories(
-                "$project", self._project_dirs, global_only
+                "project", self._project_dirs, global_only
             )
         else:
             project_files = {}
