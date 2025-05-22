@@ -166,7 +166,7 @@ def test_edit_command_with_editor():
         with (
             patch("prompy.cli.edit_file_with_comments", mock_edit_file),
             patch(
-                "prompy.prompt_file.PromptContext.parse_prompt_slug", mock_parse_slug
+                "prompy.prompt_context.PromptContext.parse_prompt_slug", mock_parse_slug
             ),
             patch(
                 "prompy.cli.ensure_config_dirs",

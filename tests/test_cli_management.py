@@ -75,7 +75,7 @@ def mock_management_env(tmp_path, monkeypatch):
         patch("prompy.cli.ensure_config_dirs", mock_config_dirs),
         patch("prompy.cli.find_project_dir", mock_project_dir),
         patch("prompy.cli.detect_language", return_value="python"),
-        patch("prompy.prompt_file.PromptContext.parse_prompt_slug", mock_parse_slug),
+        patch("prompy.prompt_context.PromptContext.parse_prompt_slug", mock_parse_slug),
     ):
         # Clear any destination files that might interfere with the tests
         for test_path in [
@@ -143,7 +143,7 @@ def test_list_command_with_category_filter(mock_management_env):
     Categories: project, test
 """
 
-    with patch("prompy.prompt_file.PromptFiles.help_text", mock_help_text):
+    with patch("prompy.prompt_files.PromptFiles.help_text", mock_help_text):
         runner = CliRunner()
         result = runner.invoke(
             cli,

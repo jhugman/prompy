@@ -10,7 +10,9 @@ from typing import Dict, List, Optional, Tuple
 import pytest
 import yaml
 
-from prompy.prompt_file import PromptContext, PromptFile, PromptFiles
+from prompy.prompt_context import PromptContext
+from prompy.prompt_file import PromptFile
+from prompy.prompt_files import PromptFiles
 
 
 def test_parse_frontmatter():

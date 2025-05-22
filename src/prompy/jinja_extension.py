@@ -12,7 +12,7 @@ from jinja2.loaders import BaseLoader
 from jinja2.nodes import Call, Const, Node
 from jinja2.parser import Parser
 
-from .prompt_file import PromptContext, PromptFile
+from .prompt_context import PromptContext
 
 
 def preprocess_template(source: str) -> str:

@@ -40,11 +40,9 @@ from prompy.output import (
     output_to_file,
     output_to_stdout,
 )
-from prompy.prompt_file import (
-    PromptContext,
-    PromptFile,
-    PromptFiles,
-)
+from prompy.prompt_context import PromptContext
+from prompy.prompt_file import PromptFile
+from prompy.prompt_files import PromptFiles
 from prompy.references import update_references
 
 # Set up logging

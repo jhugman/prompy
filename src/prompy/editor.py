@@ -11,7 +11,8 @@ import tempfile
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
-from prompy.prompt_file import PromptContext, PromptFiles
+from prompy.prompt_context import PromptContext
+from prompy.prompt_files import PromptFiles
 
 # Constant for marking help text that should be removed after editing
 HELP_TEXT_MARKER = "This comment section will be removed from the final prompt."

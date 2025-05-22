@@ -13,7 +13,7 @@ from click.shell_completion import CompletionItem
 # Import needed functions from the codebase
 from prompy.config import ensure_config_dirs, find_project_dir
 from prompy.context import create_prompt_context
-from prompy.prompt_file import PromptFiles
+from prompy.prompt_files import PromptFiles
 
 # Shell completion script templates
 BASH_COMPLETION_TEMPLATE = """
