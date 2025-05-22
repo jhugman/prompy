@@ -163,7 +163,7 @@ class PromptContext:
         Returns:
             PromptFiles: Collection of all prompt files
         """
-        project_paths, language_paths, fragment_paths = self.collect_paths(global_only)
+        project_paths, language_paths, fragment_paths = self._collect_paths(global_only)
         return PromptFiles(
             project_name=self.project_name,
             language_name=self.language,
@@ -184,7 +184,7 @@ class PromptContext:
         """
         return {slug: PromptFile.load(path, slug=slug) for slug, path in paths.items()}
 
-    def collect_paths(
+    def _collect_paths(
         self, global_only: bool
     ) -> Tuple[dict[str, Path], dict[str, Path], dict[str, Path]]:
         # Collect language files (from language/ or $env/)
@@ -287,3 +287,16 @@ class PromptContext:
             files.update(directory_files)
 
         return files
+
+    def available_slugs(self, global_only: bool) -> list[str]:
+        # Collect the slugs to path dictionaries. Don't load them, for speed.
+        project_paths, language_paths, fragment_paths = self._collect_paths(global_only)
+
+        # Merge all paths into a single dictionary
+        all_paths = {}
+        all_paths.update(project_paths)
+        all_paths.update(language_paths)
+        all_paths.update(fragment_paths)
+
+        # Get available slugs directly from path keys
+        return list(all_paths.keys())

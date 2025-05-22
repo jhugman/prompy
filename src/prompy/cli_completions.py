@@ -46,20 +46,8 @@ def complete_prompt_slug(ctx: click.Context, param: str, incomplete: str):
             project=project_name,
             language=detected_language,
         )
-
-        # Load all prompt files
-        project_paths, language_paths, fragment_paths = prompt_context.collect_paths(
-            global_only
-        )
-
-        # Merge all paths into a single dictionary
-        all_paths = {}
-        all_paths.update(project_paths)
-        all_paths.update(language_paths)
-        all_paths.update(fragment_paths)
-
         # Get available slugs directly from path keys
-        available_slugs = list(all_paths.keys())
+        available_slugs = prompt_context.available_slugs(global_only)
 
         # Filter slugs based on incomplete input
         return [slug for slug in available_slugs if slug.startswith(incomplete)]
