@@ -161,10 +161,14 @@ This expands to something you can paste into a LLM prompt.
 $PROMPY_CONFIG_DIR/
 ├── prompts/
 │   ├── languages/       # Language-specific fragments
+│   │   ├── python/
+│   │   ├── rust/
+│   │   └── <language>/
 │   ├── projects/        # Project-specific fragments
+│   │   └── <my-project>/
 │   └── fragments/       # Generic reusable fragments
 ├── cache/               # Cache for one-off prompts
-│   └── project/        # Project-specific cache
+│   └── <my-project>/    # Project-specific cache
 └── detections.yaml      # Language detection rules
 ```
 
