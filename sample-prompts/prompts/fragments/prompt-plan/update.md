@@ -20,4 +20,4 @@ For each prompt, also show a task list which can be checked off as it is complet
 
 Update the **docs/prompt_plan.md** to account for the delta between the updated spec and the current codebase, and bring the project to completion.
 
-Leave the completed prompts intact, start replacing the old incomplete prompts with the new ones.
+Leave the completed prompts intact, but replace the existing incomplete prompts with the new ones.
