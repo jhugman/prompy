@@ -310,12 +310,16 @@ def out(
 
     try:
         if prompt_slug is None:
-            # Load the current cache content
-            success, content = load_from_cache(cache_dir, project_name)
-            if not success or not content:
-                click.echo(f"No current prompt found for project: {project_name}")
-                return
-            prompt_file = PromptFile(slug="cache", markdown_template=content)
+            stdin_content = read_from_stdin()
+            if stdin_content:
+                prompt_file = PromptFile(slug="stdin", markdown_template=stdin_content)
+            else:
+                # Load the current cache content
+                success, content = load_from_cache(cache_dir, project_name)
+                if not success or not content:
+                    click.echo(f"No current prompt found for project: {project_name}")
+                    return
+                prompt_file = PromptFile(slug="cache", markdown_template=content)
         else:
             prompt_file = prompt_context.load_slug(prompt_slug, global_only=global_only)
     except Exception as e:
