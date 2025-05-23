@@ -28,7 +28,7 @@ from prompy.config import (
     ensure_config_dirs,
     find_project_dir,
 )
-from prompy.context import create_prompt_context
+from prompy.context import create_prompt_context, from_click_context
 from prompy.editor import (
     edit_file_with_comments,
     find_editor,
@@ -130,22 +130,13 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
     """
     # Use context values
     project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
-    config_dir = ctx.obj.get("config_dir")
     cache_dir = ctx.obj.get("cache_dir")
-    project_dir = ctx.obj.get("project_dir")
-
-    # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
 
     if not project_name:
         click.echo("No project detected. Please specify a project with --project.")
         return
+
+    prompt_context = from_click_context(ctx)
 
     try:
         # Start with empty content
@@ -214,19 +205,10 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
     """
     # Use context values
     project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
-    config_dir = ctx.obj.get("config_dir")
     cache_dir = ctx.obj.get("cache_dir")
-    project_dir = ctx.obj.get("project_dir")
     global_only = ctx.obj.get("global_only")
 
-    # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
+    prompt_context = from_click_context(ctx)
 
     try:
         file_path = None
@@ -319,23 +301,14 @@ def out(
     # Use context values
     project_name = ctx.obj.get("project")
     cache_dir = ctx.obj.get("cache_dir")
-    config_dir = ctx.obj.get("config_dir")
-    project_dir = ctx.obj.get("project_dir")
-    detected_language = ctx.obj.get("language")
     global_only = ctx.obj.get("global_only")
 
     if not project_name:
         click.echo("No project detected. Please specify a project with --project.")
         return
+    prompt_context = from_click_context(ctx)
 
     try:
-        # Create a prompt context for resolving fragment references
-        prompt_context = create_prompt_context(
-            config_dir=config_dir,
-            project_dir=project_dir,
-            project=project_name,
-            language=detected_language,
-        )
         if prompt_slug is None:
             # Load the current cache content
             success, content = load_from_cache(cache_dir, project_name)
@@ -345,49 +318,47 @@ def out(
             prompt_file = PromptFile(slug="cache", markdown_template=content)
         else:
             prompt_file = prompt_context.load_slug(prompt_slug, global_only=global_only)
-
-        # Resolve fragment references in the content
-        from prompy.prompt_render import PromptRender
-
-        try:
-            # Create a PromptFile object from the content
-            renderer = PromptRender(prompt_file)
-            resolved_content = renderer.render(prompt_context)
-        except Exception as e:
-            logger.error(f"Error resolving prompt fragments: {e}")
-            if ctx.obj.get("debug"):
-                logger.exception(e)
-            click.echo(f"Error resolving prompt fragments: {e}", err=True)
-            # Continue with unresolved content
-            resolved_content = content
-
-        # Output the content using the appropriate method
-        if output_to := file:
-            from prompy.output import output_to_file
-
-            if output_to_file(resolved_content, file):
-                click.echo(f"Prompt output to file: {output_to}")
-            else:
-                click.echo(f"Failed to write to file: {output_to}", err=True)
-        if pbcopy:
-            from prompy.output import output_to_clipboard
-
-            if output_to_clipboard(resolved_content):
-                click.echo("Prompt copied to clipboard.")
-            else:
-                click.echo("Failed to copy to clipboard.", err=True)
-        if not pbcopy and file is None:
-            # Output to stdout with a header
-            from prompy.output import output_to_stdout
-
-            output_to_stdout(resolved_content)
-
     except Exception as e:
         logger.error(f"Error outputting prompt: {e}")
         if ctx.obj.get("debug"):
             logger.exception(e)
         click.echo(f"Error: {e}", err=True)
         return
+
+    # Resolve fragment references in the content
+    from prompy.prompt_render import PromptRender
+
+    try:
+        # Create a PromptFile object from the content
+        renderer = PromptRender(prompt_file)
+        resolved_content = renderer.render(prompt_context)
+    except Exception as e:
+        logger.error(f"Error resolving prompt fragments: {e}")
+        if ctx.obj.get("debug"):
+            logger.exception(e)
+        click.echo(f"Error resolving prompt fragments: {e}", err=True)
+        return
+
+    # Output the content using the appropriate method
+    if output_to := file:
+        from prompy.output import output_to_file
+
+        if output_to_file(resolved_content, file):
+            click.echo(f"Prompt output to file: {output_to}")
+        else:
+            click.echo(f"Failed to write to file: {output_to}", err=True)
+    if pbcopy:
+        from prompy.output import output_to_clipboard
+
+        if output_to_clipboard(resolved_content):
+            click.echo("Prompt copied to clipboard.")
+        else:
+            click.echo("Failed to copy to clipboard.", err=True)
+    if not pbcopy and file is None:
+        # Output to stdout with a header
+        from prompy.output import output_to_stdout
+
+        output_to_stdout(resolved_content)
 
 
 @cli.command()
@@ -421,23 +392,14 @@ def save(
     """
     # Use context values
     project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
-    config_dir = ctx.obj.get("config_dir")
     cache_dir = ctx.obj.get("cache_dir")
-    project_dir = ctx.obj.get("project_dir")
-    global_only = ctx.obj.get("is_global")
-
-    # Create a prompt context for saving
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
+    global_only = ctx.obj.get("global_only")
 
     if not project_name:
         click.echo("No project detected. Please specify a project with --project.")
         return
+
+    prompt_context = from_click_context(ctx)
 
     try:
         # Load the current cache content
@@ -537,17 +499,9 @@ def list(
     # Use context values or override with options
     project_name = project or ctx.obj.get("project")
     detected_language = language or ctx.obj.get("language")
-    config_dir = ctx.obj.get("config_dir")
-    project_dir = ctx.obj.get("project_dir")
     global_only = ctx.obj.get("is_global")
 
-    # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
+    prompt_context = from_click_context(ctx)
 
     try:
         # Load all available prompt files
@@ -638,19 +592,9 @@ def mv(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> Non
     DEST_SLUG is the new location for the prompt.
     """
     # Use context values
-    config_dir = ctx.obj.get("config_dir")
-    project_dir = ctx.obj.get("project_dir")
-    project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
     global_only = ctx.obj.get("is_global")
 
-    # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
+    prompt_context = from_click_context(ctx)
 
     try:
         # Find source file
@@ -744,20 +688,9 @@ def cp(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> Non
     DEST_SLUG is the destination location for the prompt copy.
     """
     # Use context values
-    config_dir = ctx.obj.get("config_dir")
-    project_dir = ctx.obj.get("project_dir")
-    project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
     global_only = ctx.obj.get("is_global")
 
-    # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
-
+    prompt_context = from_click_context(ctx)
     try:
         # Find source file
         source_path = prompt_context.parse_prompt_slug(source_slug)
@@ -821,20 +754,10 @@ def rm(ctx: click.Context, prompt_slug: str, force: bool) -> None:
 
     PROMPT_SLUG specifies which prompt to remove.
     """
-    # Use context values
-    config_dir = ctx.obj.get("config_dir")
-    project_dir = ctx.obj.get("project_dir")
-    project_name = ctx.obj.get("project")
-    detected_language = ctx.obj.get("language")
     global_only = ctx.obj.get("is_global")
 
     # Create a prompt context
-    prompt_context = create_prompt_context(
-        config_dir=config_dir,
-        project_dir=project_dir,
-        project=project_name,
-        language=detected_language,
-    )
+    prompt_context = from_click_context(ctx)
 
     try:
         # Find the file
