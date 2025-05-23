@@ -2,14 +2,16 @@
 
 This document provides detailed information about using Prompy, a command-line tool for building and managing prompts with reusable fragments.
 
+> For command reference, directory structure, and environment variables, see [Reference](reference.md).
+
 ## Table of Contents
 
 1. [Core Concepts](#core-concepts)
-2. [Command Reference](#command-reference)
-3. [Prompt Fragments](#prompt-fragments)
-4. [Fragment References](#fragment-references)
-5. [Language Detection](#language-detection)
-6. [Configuration](#configuration)
+2. [A worked example](#a-worked-example)
+3. [More advanced](#more-advanced)
+4. [Prompt Fragments](#prompt-fragments)
+5. [Fragment References](#fragment-references)
+6. [Language Detection](#language-detection)
 7. [Advanced Usage](#advanced-usage)
 
 ## Core Concepts
@@ -155,266 +157,11 @@ This expands to something you can paste into a LLM prompt.
 3. You know when you are finished when all tests pass.
 ```
 
-### Directory Structure
-
-```
-$PROMPY_CONFIG_DIR/
-├── prompts/
-│   ├── languages/       # Language-specific fragments
-│   │   ├── python/
-│   │   ├── rust/
-│   │   └── <language>/
-│   ├── projects/        # Project-specific fragments
-│   │   └── <my-project>/
-│   └── fragments/       # Generic reusable fragments
-├── cache/               # Cache for one-off prompts
-│   └── <my-project>/    # Project-specific cache
-└── detections.yaml      # Language detection rules
-```
-
-Project-specific prompts can also be stored in `$PROJECT_DIR/.prompy/`. This optional directory is
-structured slightly differently:
-
-```
-$PROJECT_DIR/
-└── .prompy
-    ├── project/       # Generic reusable fragments
-    ├── environment/       # Language-specific fragments
-    └── fragments/           # Task-specific fragments
-
-```
+# More advanced examples can be found below
 
 The `$PROJECT_DIR` is defined as the first directory with the `.git` directory, starting with the current directory, then walking back up to the root.
 
 If the `$PROJECT_DIR` contains a directory called `.prompy`, then files are saved there.
-
-## Command Reference
-
-### Global Options
-
-These options apply to all commands:
-
-```bash
-prompy [options] [COMMAND]
-```
-
-- `--version`: Show the version and exit
-- `--help`: Show the help message and exit
-- `--debug`: Enable debug logging for detailed error information
-- `--language LANG`: Specify the language manually
-- `--project PROJECT`: Specify the project manually
-- `--global`, `-g`: Use prompts not saved in the project directory
-
-### Working with One-Off Prompts
-
-#### `new` - Start a new prompt
-
-```bash
-prompy new [STARTER_SLUG] [--save NEW_PROMPT_SLUG]
-```
-
-Creates a new one-off prompt, optionally using an existing prompt as a template. Clears any existing cached prompt for the current project.
-
-Options:
-- `STARTER_SLUG`: Optional - an existing prompt to use as a starting point
-
-Examples:
-```bash
-prompy new
-prompy new generic/run-all-tests
-prompy new 'project/init-shell'
-```
-
-#### `edit` - Edit a prompt
-
-```bash
-prompy edit [PROMPT_SLUG]
-```
-
-Opens a prompt for editing in your default editor. If no slug is specified, edits the current one-off prompt.
-
-Options:
-- `PROMPT_SLUG`: Optional - the prompt to edit (if not provided, edits the one-off prompt)
-
-Examples:
-```bash
-prompy edit
-prompy edit fragments/code-review
-```
-
-#### `out` - Output a prompt
-
-```bash
-prompy out [PROMPT_SLUG] [--file FILE] [--pbcopy]
-```
-
-Outputs the final prompt to stdout, a file, or the clipboard.
-
-Options:
-- `PROMPT_SLUG`: Optional - the prompt to output (if not provided, outputs the one-off prompt)
-- `--file`, `-f`: Output to a file
-- `--pbcopy`: Copy to clipboard
-
-Examples:
-```bash
-prompy out
-prompy out code-review
-prompy out --file my-prompt.md
-prompy out --pbcopy
-```
-
-#### `pbcopy` - Copy to clipboard
-
-```bash
-prompy pbcopy [PROMPT_SLUG]
-```
-
-Copies a prompt to the clipboard. Shortcut for `prompy out --pbcopy`.
-
-Options:
-- `PROMPT_SLUG`: Optional - the prompt to copy (if not provided, copies the one-off prompt)
-
-Examples:
-```bash
-prompy pbcopy
-prompy pbcopy code-review
-```
-
-### Managing Reusable Prompts
-
-#### `list` - List available prompts
-
-```bash
-prompy list [--project PROJECT] [--language LANG] [--category CATEGORY] [--format FORMAT]
-```
-
-Lists available prompts, filtered by project, language, and category.
-
-Options:
-- `--project`: Filter by project
-- `--language`: Filter by language
-- `--category`: Filter by category
-- `--format`: Output format: 'simple' (just slugs) or 'detailed' (with descriptions)
-
-Examples:
-```bash
-prompy list
-prompy list --project myproject
-prompy list --language python --category testing
-```
-
-#### `save` - Save a prompt
-
-```bash
-prompy save PROMPT_SLUG [--description DESC] [--category CAT...] [--force]
-```
-
-Saves the current one-off prompt as a reusable prompt fragment.
-
-Options:
-- `PROMPT_SLUG`: Where to save the prompt
-- `--description`, `-d`: Description of the prompt
-- `--category`, `-c`: Categories for the prompt (can be specified multiple times)
-- `--force`, `-f`: Overwrite existing prompt without confirmation
-
-Examples:
-```bash
-prompy save my-new-prompt
-prompy save 'language/snippets/error-handling' --description "Error handling examples" --category errors
-```
-
-#### `mv` - Move/rename a prompt
-
-```bash
-prompy mv SOURCE_SLUG DEST_SLUG [--force]
-```
-
-Moves or renames a prompt from one location to another.
-
-Care has been taken to make sure that references to the old prompt are changed in other prompts.
-
-Options:
-- `SOURCE_SLUG`: Current location of the prompt
-- `DEST_SLUG`: New location for the prompt
-- `--force`, `-f`: Overwrite existing prompt without confirmation
-
-Examples:
-```bash
-prompy mv old-name new-name
-prompy mv 'project/init-shell' 'language/init-shell-uv'
-```
-
-#### `cp` - Copy a prompt
-
-```bash
-prompy cp SOURCE_SLUG DEST_SLUG [--force]
-```
-
-Copies a prompt to a new location.
-
-Options:
-- `SOURCE_SLUG`: Source location of the prompt
-- `DEST_SLUG`: Destination location for the prompt copy
-- `--force`, `-f`: Overwrite existing prompt without confirmation
-
-Examples:
-```bash
-prompy cp template my-template
-```
-
-#### `rm` - Remove a prompt
-
-```bash
-prompy rm PROMPT_SLUG [--force]
-```
-
-Removes a prompt.
-
-Options:
-- `PROMPT_SLUG`: Which prompt to remove
-- `--force`, `-f`: Remove without confirmation
-
-Examples:
-```bash
-prompy rm fragments/obsolete-prompt
-```
-
-### Configuration and Utilities
-
-#### `detections` - Edit language detection rules
-
-```bash
-prompy detections [--validate]
-```
-
-Opens the detections.yaml file in your editor for customizing language detection rules.
-
-Options:
-- `--validate`: Validate the file format without opening the editor
-
-Examples:
-```bash
-prompy detections
-prompy detections --validate
-```
-
-#### `completions` - Generate shell completions
-
-```bash
-prompy completions SHELL [--output FILE]
-```
-
-Generates shell completion scripts.
-
-Options:
-- `SHELL`: Which shell to generate completions for (bash, zsh, or fish)
-- `--output`, `-o`: Output file to write the completion script to
-
-Examples:
-```bash
-prompy completions bash
-prompy completions zsh --output ~/.zsh/_prompy
-```
 
 ## Prompt Fragments
 
@@ -521,10 +268,7 @@ rules:
 
 ## Configuration
 
-Prompy can be configured via environment variables:
-
-- `PROMPY_CONFIG_DIR`: Where to store configuration files (default: `~/.config/prompy`)
-- `EDITOR`: Which editor to use for editing prompts (default: system default)
+See [Reference](reference.md#environment-variables) for configuration options and environment variables.
 
 ## Advanced Usage
 
@@ -540,7 +284,7 @@ echo "# Additional information" | prompy new
 
 Prompy supports multiple projects with project-specific prompts:
 
-1. Global prompts in `$PROMPY_CONFIG_DIR/prompts/`
-2. Project prompts in `$PROJECT_DIR/.prompts/`
+1. Global prompts in `$PROMPY_CONFIG_DIR/prompy/`
+2. Project prompts in `$PROJECT_DIR/.prompy/`
 
 Use the `--global` flag to use only global prompts.

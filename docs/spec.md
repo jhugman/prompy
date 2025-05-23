@@ -1,21 +1,21 @@
-# Prompy: Prompt Building Tool Specification
+# Prompt Building Tool Specification
 
 ## Overview
-Prompy is a command-line tool designed to help users build prompts for use with AI tools like Copilot or other LLM-based code helpers. It provides a templating system for creating reusable prompt fragments, opens an editor for user customization, and outputs the final prompt to stdout or directly to the clipboard.
+This command-line tool is designed to help users build prompts for use with AI tools like Copilot or other LLM-based code helpers. It provides a templating system for creating reusable prompt fragments, opens an editor for user customization, and outputs the final prompt to stdout, a file, or directly to the clipboard.
 
-The heart of the system is a templating engine which is a Jinja2 and a custom extension. Getting this templating engine right is important and should be tackled early in the project.
+The heart of the system is a templating engine which uses a custom extension of the Jinja templating system. Getting this templating engine right is important and should be tackled early in the project.
 
 ## Core Features
 1. **Command-Line Interface**
    - Launches the user's default `$EDITOR` with a pre-populated template
    - Resolves prompt fragment references into a final prompt
-   - Outputs the final prompt to stdout or copies it to the clipboard
+   - Outputs the final prompt to stdout, file, or copies it to the clipboard
 
 2. **Prompt Fragments**
    - Use an environment variable `PROMPY_CONFIG_DIR`, default to `~/.config/prompy`
-   - Prompts can be stored in `$PROMPY_CONFIG_DIR/prompts/`. Project specific prompts can also be stored in `$PROJECT_DIR/.prompts`.
-   - Organized by project, language, and task
-   - Include YAML frontmatter for metadata and Markdown for content
+   - Prompts can be stored in `$PROMPY_CONFIG_DIR/prompts/`. Project specific prompts can also be stored in `$PROJECT_DIR/.prompy/`.
+   - Organized by project, language, and fragments
+   - Include YAML front matter for metadata and Markdown for content
    - Can reference other prompt fragments (recursive resolution)
 
 3. **Caching**
@@ -26,17 +26,19 @@ The heart of the system is a templating engine which is a Jinja2 and a custom ex
    - Detects and reports missing fragments with clear error messages
    - Validates that all required arguments for fragments are provided
    - Detects and reports cycles in fragment references
+   - Provides detailed context information for better debugging
 
 5. **Project and Language Detection**
-   - Detects the current project by walking up directories to find a `.git` folder. The first one with a `.git` directory is known as `PROJECT_DIR`.
-   -
+   - Detects the current project by walking up directories to find a project marker (like `.git` folder, `package.json`, etc.). The first directory with a marker is known as `PROJECT_DIR`.
+   - Language detection uses a sophisticated scoring system with file patterns, directory patterns, and content patterns
    - Language detection rules are configurable in `$PROMPY_CONFIG_DIR/detections.yaml`
+   - Supports weighted scoring for more accurate language detection
 
 ## Command-Line Interface
 
 ### Usage
 
-Prompy supports both a traditional command format and a subcommand structure:
+The tool supports both a traditional command format and a subcommand structure:
 
 ```
 prompy [global-options] [PROMPT_SLUG]      # Traditional usage
@@ -202,7 +204,7 @@ Edit language detection rules
     languages/
       python/
       javascript/
-    tasks/
+    fragments/
       refactor.md
       code-review.md
   cache/
@@ -213,13 +215,22 @@ Edit language detection rules
   detections.yaml
 ```
 
-Using `$project` may also look for a `.prompts` directory of the project root (i.e. the first ancestor of pwd containing a `.git` directory).
+Using `$project` may also look for a `.prompy` directory in the project root (i.e. the first ancestor of pwd containing a `.git` directory or other project markers). This optional directory is structured differently:
+
+```
+$PROJECT_DIR/
+└── .prompy
+    ├── project/       # Project-specific fragments
+    ├── environment/   # Language-specific fragments
+    └── fragments/     # Generic fragments
+```
 
 ## Prompt Fragment File Format
 ### Example
 ```yaml
 ---
 description: Template for completion criteria
+categories: [completion, tasks]
 args:
   tasks: # required argument (no default value)
   name: User # argument with default value of "User"
@@ -230,6 +241,8 @@ Something something the following commands run cleanly:
 
 Then call out "All done {{ name }}!"
 ```
+
+Note: The key for arguments in the front matter can be either `args` or `arguments`, with `args` being the convention in the specification and documentation.
 
 ## Editor Experience
 When opening the editor, a commented section will be displayed at the bottom with helpful information:
@@ -251,11 +264,6 @@ LANGUAGE FRAGMENTS (detected: python):
   @language/test
     Task for running a test
 
-TASKS:
-  next-prompt
-  spec/start
-  spec/end
-
 FRAGMENTS:
   @finish-when(tasks)
     Template for completion criteria
@@ -275,7 +283,7 @@ This comment section will be removed from the final prompt.
 ## Architecture
 ### Language and Libraries
 - **Language**: Python
-- **Templating Engine**: Jinja2 (customized syntax for `{{ @fragment-name(arg, key=value) }}`)
+- **Templating Engine**: Custom extension using the Jinja templating system for `{{ @fragment-name(arg, key=value) }}`
 
 ### Workflow
 1. **Initialization**:
@@ -302,7 +310,7 @@ This comment section will be removed from the final prompt.
 
 ### One-Off Prompt Handling
 1. **Creating New Prompts**:
-   - With `--new`: Clear any existing CURRENT_FILE.md
+   - With `--new`: Clear any existing cached file
    - With `--new [PROMPT_SLUG]`: Use the specified prompt as a template
    - From stdin with `--new`: Create from piped content
 
@@ -312,13 +320,13 @@ This comment section will be removed from the final prompt.
 
 3. **Saving One-Off Prompts**:
    - With `save`: Convert to reusable prompt
-   - Add minimal frontmatter if not present
+   - Add minimal front matter if not present
    - Prompt for confirmation when overwriting existing prompts
 
 ### Moving Cache Files to Config
 When using `mv`:
 1. Remove the help/comment text at the top
-2. Add empty/default frontmatter if not present
+2. Add empty/default front matter if not present
 3. Save to the specified location in the config directory
 
 ## Data Handling
@@ -338,9 +346,12 @@ When using `mv`:
 - If a cycle is detected, report the full chain
 
 ## Error Handling
+
+The implementation provides detailed, actionable error messages with specific context information:
+
 - **Missing Fragments**:
   ```
-  Error: Missing prompt fragment '@project/test-steps'
+  Error: Missing fragment: @project/test-steps
     in file: ~/.config/prompy/cache/my-project/CURRENT_FILE.md
     at line: 12
     searched paths:
@@ -350,26 +361,34 @@ When using `mv`:
 
 - **Cycle Detection**:
   ```
-  Error: Cyclic reference detected '@a' -> '@b' -> '@c' -> '@a'
+  Error: Cyclic reference detected: @main -> @fragment1 -> @fragment2 -> @main
     in file: ~/.config/prompy/cache/my-project/CURRENT_FILE.md
-    - ~/.config/prompy/prompts/a.md
-    - ~/.config/prompy/prompts/b.md
-    - ~/.config/prompy/prompts/c.md
-    - ~/.config/prompy/prompts/a.md
+    - ~/.config/prompy/prompts/main.md
+    - ~/.config/prompy/prompts/fragment1.md
+    - ~/.config/prompy/prompts/fragment2.md
+    - ~/.config/prompy/prompts/main.md
     starting at line: 5
   ```
 
 - **Argument Validation**:
   ```
-  Error: Missing required argument 'tasks' for fragment '@finish-when'
+  Error: Missing required argument 'tasks' for fragment @finish-when
     in file: ~/.config/prompy/cache/my-project/CURRENT_FILE.md
     at line: 8
   ```
 
+- **Template Syntax Errors**:
+  ```
+  Error: Template syntax error at line 5: unexpected '}'
+    in file: ~/.config/prompy/cache/my-project/CURRENT_FILE.md
+  ```
+
+The error handling system captures appropriate context such as file paths, line numbers, and specific missing fragments or arguments, allowing users to quickly fix issues.
+
 ## Testing Plan
 ### Unit Tests
 - **Fragment Parsing**:
-  - Test parsing of YAML frontmatter and Markdown content
+  - Test parsing of YAML front matter and Markdown content
   - Validate argument extraction
   - Test path resolution (project, language variables)
 
@@ -418,30 +437,37 @@ When using `mv`:
 
 ### Phase 1: Core Functionality
 1. Set up project structure and CLI command parsing
-2. Implement fragment file loading and parsing
-3. Build the editor launch and handling
+2. Implement fragment file loading and parsing with YAML front matter
+3. Build the editor launch and handling with appropriate help comments
 4. Create basic fragment resolution (non-recursive)
 
 ### Phase 2: Advanced Features
-1. Add recursive fragment resolution
-2. Implement cycle detection
-3. Add argument validation
-4. Build project and language detection
+1. Add recursive fragment resolution with advanced templating
+2. Implement cycle detection with informative error messages
+3. Add argument validation with defaults and required arguments
+4. Build sophisticated project and language detection
 
-### Phase 3: Polish and Extras
-1. Add clipboard support and expanded output options (--pbcopy, --stdout, --file)
-2. Implement the `mv` and `save` commands
-3. Add one-off prompt handling (--new, stdin append, etc.)
-4. Enhance prompt listing functionality
-5. Create shell completions
-6. Add error handling and reporting improvements
+### Phase 3: Enhanced Features
+1. Add output options (stdout, clipboard, file output) with proper error handling
+2. Implement file management commands (`mv`, `cp`, `save`, `rm`)
+3. Add one-off prompt handling (new, edit, append from stdin)
+4. Enhance prompt listing with categorization and filtering
+5. Create shell completions for better CLI experience
+6. Implement robust error handling with context-rich messages
+
+### Phase 4: Polishing and Documentation
+1. Optimize language detection with weighted scoring
+2. Add comprehensive test coverage
+3. Create detailed user documentation
+4. Develop reference documentation for all commands and options
+5. Add project-specific configuration in `.prompy` directory
 
 ## Dependencies
-- `pyyaml`: For YAML frontmatter parsing
+- `pyyaml`: For YAML front matter parsing
 - `jinja2`: For templating (with custom syntax)
 - `click`: For command-line argument parsing
 - `pyperclip`: For clipboard functionality
 
 ---
 
-This specification provides a comprehensive guide for implementing Prompy. Developers can use this as a reference to build the tool step by step, with clear requirements, architecture decisions, and testing strategies.
+This specification provides a comprehensive guide for implementing the tool. Developers can use this as a reference to build the tool step by step, with clear requirements, architecture decisions, and testing strategies.
