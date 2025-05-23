@@ -36,18 +36,14 @@ class PromptRender:
     A class for rendering prompt templates with fragment resolution using Jinja2.
     """
 
-    def __init__(
-        self, prompt_file: PromptFile, arguments: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, prompt_file: PromptFile):
         """
         Initialize a PromptRender instance.
 
         Args:
             prompt_file: The prompt file to render
-            arguments: Optional arguments to apply to the template
         """
         self.prompt_file = prompt_file
-        self.arguments = arguments or {}
 
     def render(self, context: PromptContext) -> str:
         """
@@ -70,6 +66,7 @@ class PromptRender:
 
         # Get the template content
         template_content = self.prompt_file.markdown_template.strip()
+        arguments = self.prompt_file.arguments or {}
         # Create a Jinja2 template from the processed template content
         try:
             template = env.from_string(template_content)
@@ -79,7 +76,7 @@ class PromptRender:
 
         # Render the template with the arguments
         try:
-            return template.render(**self.arguments)
+            return template.render(**arguments)
         except ValueError as e:
             # Re-raise ValueError errors (like cyclic references)
             raise
