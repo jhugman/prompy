@@ -6,14 +6,30 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
+import click
+
 from prompy.config import detect_language, find_project_dir, get_config_dir
 from prompy.prompt_context import PromptContext
 
 
+def from_click_context(ctx: click.Context) -> PromptContext:
+    project_name = ctx.obj.get("project")
+    detected_language = ctx.obj.get("language")
+    config_dir = ctx.obj.get("config_dir")
+    project_dir = ctx.obj.get("project_dir")
+
+    return create_prompt_context(
+        config_dir=config_dir,
+        project_dir=project_dir,
+        project_name=project_name,
+        language=detected_language,
+    )
+
+
 def create_prompt_context(
-    config_dir: Optional[Path] = None,
+    config_dir: Path,
     project_dir: Optional[Path] = None,
-    project: Optional[str] = None,
+    project_name: Optional[str] = None,
     language: Optional[str] = None,
 ) -> PromptContext:
     """
@@ -28,30 +44,23 @@ def create_prompt_context(
     Returns:
         PromptContext: A configured prompt context
     """
-    # Find project root directory and get its name if not provided
-    root = project_dir if project_dir is not None else find_project_dir()
-    project_name = project if project is not None else (root.name if root else None)
-
-    # Detect language if not specified
-    detected_language = language if language is not None else detect_language(root)
 
     # Get config directory from environment if not provided
-    config_dir = config_dir if config_dir is not None else get_config_dir()
     global_prompts = config_dir / "prompts"
 
     # Set up local prompts directory if project root exists
     language_dirs = []
     project_dirs = []
     fragment_dirs = []
-    if root is not None and root.exists():
-        local_prompts = root / ".prompy"
+    if project_dir is not None and project_dir.exists():
+        local_prompts = project_dir / ".prompy"
         if local_prompts.exists():
             language_dirs.append(local_prompts / "environment")
             project_dirs.append(local_prompts / "project")
             fragment_dirs.append(local_prompts / "fragments")
 
-    if detected_language:
-        language_dirs.append(global_prompts / "languages" / detected_language)
+    if language:
+        language_dirs.append(global_prompts / "languages" / language)
 
     if project_name:
         project_dirs.append(global_prompts / "projects" / project_name)
@@ -61,7 +70,7 @@ def create_prompt_context(
     # Create and return the PromptContext
     return PromptContext(
         project_name=project_name,
-        language=detected_language,
+        language=language,
         language_dirs=language_dirs,
         project_dirs=project_dirs,
         fragment_dirs=fragment_dirs,
