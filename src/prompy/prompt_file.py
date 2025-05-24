@@ -7,6 +7,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
+from yaml.representer import SafeRepresenter
+
+
+# Configure PyYAML to use literal style for strings containing special characters
+def _literal_str_representer(dumper, data):
+    # Use literal style for strings with newlines, special chars or if they end with ellipsis
+    if "\n" in data or "..." in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+# Register the custom string representer
+yaml.add_representer(str, _literal_str_representer)
 
 
 class PromptFile:
@@ -122,7 +135,7 @@ class PromptFile:
         prompt_file.categories = frontmatter_data.get("categories")
 
         # Handle arguments
-        args = frontmatter_data.get("args", {})
+        args = frontmatter_data.get("args", frontmatter_data.get("argumentss", {}))
         if args:
             prompt_file.arguments = {}
             for key, value in args.items():
@@ -151,8 +164,15 @@ class PromptFile:
         if self.arguments:
             frontmatter_data["args"] = self.arguments
 
-        # Convert to YAML
-        return yaml.dump(frontmatter_data, sort_keys=False).strip()
+        # Convert to YAML with improved readability
+        return yaml.dump(
+            frontmatter_data,
+            sort_keys=False,
+            default_style=None,
+            default_flow_style=False,
+            width=80,
+            allow_unicode=True,
+        ).strip()
 
     def generate_frontmatter(self) -> str:
         """

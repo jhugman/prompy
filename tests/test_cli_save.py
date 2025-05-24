@@ -264,8 +264,8 @@ def test_save_command_auto_generated_frontmatter(mock_save_env):
     # Create a more complex content with potential arguments
     complex_content = """This is a complex prompt with arguments.
 
-For variable1, I want to use $param1.
-For variable2, let's use $param2.
+For variable1, I want to use {{param1}}.
+For variable2, let's use {{param2}}.
 
 This paragraph doesn't have any variables."""
 
