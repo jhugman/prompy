@@ -8,5 +8,5 @@ description: Check that the project conforms to the spec
     - Use Mocks, patch and monkey-patching **only** for stubbing out launching and waiting for an editor and clipboard actions.
     - Use fixtures containing actual files, then writing those files, and looking at them is acceptable for end-to-end tests. Copying the fixtures to a temporary directory, then mutating and checking that directory would be ideal.
     - We want to make sure this all works before completions, optimization, packaging etc
-4. {{ @steps/all-test-pass }}
+4. {{ @steps/all-tests-pass }}
 5. {{ @steps/git-commit }}
