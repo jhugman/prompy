@@ -76,7 +76,7 @@ class PromptRender:
 
         # Render the template with the arguments
         try:
-            return template.render(**arguments)
+            return template.render(arguments)
         except ValueError as e:
             # Re-raise ValueError errors (like cyclic references)
             raise
