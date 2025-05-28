@@ -542,34 +542,18 @@ Tasks:
 ```
 You will be implementing performance improvements for the Prompy tool's fragment resolution system. This builds on previous work in prompt_render.py and jinja_extension.py.
 
-1. Profile the fragment resolution process:
-   - Add timing instrumentation to measure rendering performance
-   - Identify bottlenecks in the rendering process
-   - Focus on scenarios with deeply nested fragment references
-
-2. Optimize the fragment resolution algorithm:
-   - Implement caching for resolved fragments to avoid redundant processing
-   - Optimize the regular expression patterns for better performance
-   - Consider using a more efficient parsing approach for complex templates
-
-3. Refactor complex methods for improved readability:
+1. Refactor complex methods for improved readability:
    - Break down large methods into smaller, focused functions
    - Add clear documentation explaining the algorithm
    - Ensure consistent error handling throughout
 
-4. Write comprehensive tests for:
-   - Performance improvements with benchmarking
-   - Correctness of optimized rendering
+2. Write comprehensive tests for:
    - Edge cases with complex nested references
 
 Tasks:
-- [ ] Add timing instrumentation for profiling
-- [ ] Identify and document performance bottlenecks
-- [ ] Implement fragment resolution caching
 - [ ] Optimize regular expression patterns
 - [ ] Refactor complex methods for clarity
 - [ ] Update existing tests to cover optimizations
-- [ ] Add performance benchmark tests
 - [ ] PROMPT 14 COMPLETE
 ```
 
