@@ -105,8 +105,11 @@ def test_out_command_no_project(mock_output_env):
         # Run without --project flag
         result = runner.invoke(cli, ["out"])
 
-        assert result.exit_code == 0
-        assert "No project detected" in result.output
+        assert result.exit_code == 1  # Error exit code
+        assert "Error: No project detected" in result.output
+        assert "💡 Suggestion:" in result.output
+        assert "Specify a project with --project" in result.output
+        assert "run prompy in a project directory" in result.output
 
 
 def test_out_command_no_cache(mock_output_env):
@@ -122,8 +125,12 @@ def test_out_command_no_cache(mock_output_env):
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["--project", "test-project", "out"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 1  # Error exit code
         assert "No current prompt found" in result.output
+        assert (
+            "Try specifying a prompt slug or providing content via stdin"
+            in result.output
+        )
 
 
 def test_pbcopy_command(mock_output_env):
@@ -166,3 +173,20 @@ def test_pbcopy_command_with_slug(mock_output_env):
 
         assert result.exit_code == 0
         assert "Prompt copied to clipboard" in result.output
+
+
+def test_pbcopy_command_with_clipboard_error(mock_output_env):
+    """Test the pbcopy command when clipboard access fails."""
+    mock_config, mock_render, cache_dir, test_content = mock_output_env
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        with patch(
+            "prompy.output.output_to_clipboard", return_value=False
+        ) as mock_clipboard:
+            result = runner.invoke(cli, ["--project", "test-project", "pbcopy"])
+
+            assert result.exit_code == 1  # Should exit with error
+            assert "Failed to copy to clipboard" in result.output
+            assert "Make sure your system clipboard is accessible" in result.output
+            mock_clipboard.assert_called_once_with(test_content)

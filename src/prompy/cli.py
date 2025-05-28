@@ -3,6 +3,7 @@ Command-line interface for Prompy.
 """
 
 import logging
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,7 @@ from prompy.editor import (
     find_editor,
     launch_editor,
 )
+from prompy.error_handling import PrompyError, handle_error
 from prompy.output import (
     output_content,
     output_to_clipboard,
@@ -138,72 +140,63 @@ def cli(
 @click.pass_context
 def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) -> None:
     """
-    Start a new prompt.
+    Create a new prompt and open it in an editor.
 
-    If PROMPT_SLUG is provided, use it as a template.
+    If PROMPT_SLUG is provided, use it as a template. Otherwise, start with an empty prompt.
     """
-    # Use context values
-    project_name = ctx.obj.get("project")
-    cache_dir = ctx.obj.get("cache_dir")
-
-    if not project_name:
-        click.echo("No project detected. Please specify a project with --project.")
-        return
-
-    prompt_context = from_click_context(ctx)
-
     try:
-        # Start with empty content
-        template_content = ""
+        # Get project info
+        project_name = ctx.obj.get("project")
+        if not project_name:
+            click.echo(
+                "No project detected. Please specify a project with --project.",
+                err=True,
+            )
+            return
 
-        # Check if we're using a template
-        if prompt_slug:
-            try:
-                template_path = prompt_context.parse_prompt_slug(prompt_slug)
-                if template_path:
-                    prompt_file = PromptFile.load(template_path)
-                    template_content = prompt_file.markdown_template
-                    click.echo(f"Using template: {prompt_slug}")
-                else:
-                    click.echo(f"Template not found: {prompt_slug}")
-                    return
-            except FileNotFoundError:
-                click.echo(f"Template not found: {prompt_slug}")
-                return
+        # Get config dirs
+        cache_dir = ctx.obj.get("cache_dir")
+        prompt_context = from_click_context(ctx)
 
-        # Check if we need to append from stdin
-        stdin_content = read_from_stdin()
-        if stdin_content:
-            template_content = stdin_content + "\n" + template_content
-            click.echo("Appended content from stdin.")
-
-        # Clear any existing cache and save the new content
+        # Clear existing cache
         clear_cache(cache_dir, project_name)
-        save_to_cache(cache_dir, project_name, template_content)
 
-        if not stdin_content:
-            # Get the cache file path
-            cache_file_path = get_cache_file_path(cache_dir, project_name)
+        # Get the cache file path and ensure parent directory exists
+        cache_file_path = get_cache_file_path(cache_dir, project_name)
+        cache_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Load prompt files for help comments
-            prompt_files = prompt_context.load_all()
-
-            # Launch the editor
-            success = edit_file_with_comments(str(cache_file_path), prompt_files)
-
-            if success:
-                click.echo(f"New prompt cached for {project_name}")
+        # Check for stdin content
+        stdin_content = get_stdin_content()
+        if stdin_content:
+            # Save stdin content to cache
+            save_to_cache(cache_dir, project_name, stdin_content)
+            click.echo("Appended content from stdin.")
+        else:
+            # If a template prompt is specified, use it
+            if prompt_slug:
+                prompt_file = prompt_context.load_slug(prompt_slug)
+                save_to_cache(cache_dir, project_name, prompt_file.markdown_template)
             else:
-                click.echo(f"Error: Failed to save prompt.")
+                # Start with empty file
+                save_to_cache(cache_dir, project_name, "")
+
+        # Load prompt files for help comments
+        prompt_files = prompt_context.load_all()
+
+        # Launch the editor
+        success = edit_file_with_comments(str(cache_file_path), prompt_files)
+
+        if success:
+            click.echo(f"New prompt cached for {project_name}")
+        else:
+            click.echo("Failed to save prompt.", err=True)
+            return
 
         if save_as is not None:
             ctx.invoke(save, prompt_slug=save_as)
 
     except Exception as e:
-        logger.error(f"Error creating new prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
+        handle_error(e, ctx)
         return
 
 
@@ -212,57 +205,43 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
 @click.pass_context
 def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
     """
-    Edit an existing prompt.
+    Edit a prompt in the default editor.
 
     If PROMPT_SLUG is provided, edit that prompt.
     Otherwise, edit the current one-off prompt.
     """
-    # Use context values
-    project_name = ctx.obj.get("project")
-    cache_dir = ctx.obj.get("cache_dir")
-    global_only = ctx.obj.get("global_only")
-
-    prompt_context = from_click_context(ctx)
-
     try:
+        prompt_context = from_click_context(ctx)
+        project_name = ctx.obj.get("project")
+        cache_dir = ctx.obj.get("cache_dir")
+
+        # Get stdin content if available
+        stdin_content = get_stdin_content()
+
+        # If a slug is provided, edit that prompt
         file_path = None
-        prompt_files = None
-
-        # Check if we need to append from stdin
-        stdin_content = read_from_stdin()
-
-        # Determine which file to edit
         if prompt_slug:
-            # Try to resolve the slug to edit an existing prompt
-            try:
-                file_path = prompt_context.parse_prompt_slug(
-                    prompt_slug, global_only=global_only
-                )
-                if not file_path or not file_path.exists():
-                    click.echo(f"Prompt not found: {prompt_slug}")
-                    return
+            file_path = prompt_context.parse_prompt_slug(prompt_slug)
+            assert file_path is not None
 
-                # If stdin content exists, append it directly to the file
-                if stdin_content:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        existing_content = f.read()
+            # If stdin content exists, append it directly to the file
+            if stdin_content:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_content = f.read()
 
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(existing_content.rstrip() + "\n\n" + stdin_content)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(existing_content.rstrip() + "\n\n" + stdin_content)
 
-                    click.echo("Appended content from stdin.")
+                click.echo("Appended content from stdin.")
 
-                click.echo(f"Editing prompt: {prompt_slug}")
-            except FileNotFoundError:
-                click.echo(f"Prompt not found: {prompt_slug}")
-                return
+            click.echo(f"Editing prompt: {prompt_slug}")
         else:
             # Edit the current one-off prompt in cache
             if not project_name:
-                click.echo(
-                    "No project detected. Please specify a project with --project."
+                raise PrompyError(
+                    "No project detected",
+                    suggestion="Specify a project with --project or run prompy in a project directory",
                 )
-                return
 
             # Get the cache file path
             file_path = get_cache_file_path(cache_dir, project_name)
@@ -287,14 +266,21 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
         if success:
             click.echo(f"Prompt saved successfully.")
         else:
-            click.echo(f"Error: Failed to save prompt.")
+            raise PrompyError(
+                "Failed to save prompt",
+                suggestion="Check file permissions and make sure you have write access",
+            )
 
     except Exception as e:
-        logger.error(f"Error editing prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
+        handle_error(e, ctx)
         return
+
+
+def get_stdin_content():
+    """Get content from stdin if available."""
+    if not sys.stdin.isatty():
+        return sys.stdin.read()
+    return None
 
 
 @cli.command()
@@ -305,49 +291,42 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
 def out(
     ctx: click.Context, prompt_slug: Optional[str], file: Optional[str], pbcopy: bool
 ) -> None:
-    """
-    Output the current prompt.
+    """Output the current prompt or a specified prompt.
 
-    If OUTPUT_FILE is provided, write to that file.
-    Otherwise, write to standard output.
-    Use --pbcopy to copy to the clipboard instead.
+    If no prompt_slug is provided, outputs the current cached prompt for the project.
     """
-    # Use context values
+    from prompy.context import from_click_context
+    from prompy.prompt_file import PromptFile
+
     project_name = ctx.obj.get("project")
     cache_dir = ctx.obj.get("cache_dir")
-    global_only = ctx.obj.get("global_only")
-
-    if not project_name:
-        click.echo("No project detected. Please specify a project with --project.")
-        return
+    global_only = ctx.obj.get("global_only", False)
     prompt_context = from_click_context(ctx)
 
     try:
-        if prompt_slug is None:
-            stdin_content = read_from_stdin()
-            if stdin_content:
-                prompt_file = PromptFile(slug="stdin", markdown_template=stdin_content)
-            else:
-                # Load the current cache content
-                success, content = load_from_cache(cache_dir, project_name)
-                if not success or not content:
-                    click.echo(f"No current prompt found for project: {project_name}")
-                    return
-                prompt_file = PromptFile(slug="cache", markdown_template=content)
+        # Load either the specified prompt or the current cache
+        if not prompt_slug:
+            if not project_name:
+                raise PrompyError(
+                    "No project detected",
+                    suggestion="Specify a project with --project or run prompy in a project directory",
+                )
+
+            # Load the current cache content
+            success, content = load_from_cache(cache_dir, project_name)
+            if not success or not content:
+                raise PrompyError(
+                    "No current prompt found",
+                    suggestion="Try specifying a prompt slug or providing content via stdin",
+                )
+            prompt_file = PromptFile(slug="cache", markdown_template=content)
         else:
             prompt_file = prompt_context.load_slug(prompt_slug, global_only=global_only)
-    except Exception as e:
-        logger.error(f"Error outputting prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
-        return
 
-    # Resolve fragment references in the content
-    from prompy.diagnostics import diagnostics_manager
-    from prompy.prompt_render import PromptRender
+        # Resolve fragment references in the content
+        from prompy.diagnostics import diagnostics_manager
+        from prompy.prompt_render import PromptRender
 
-    try:
         # Create a PromptFile object from the content
         renderer = PromptRender(prompt_file)
         resolved_content = renderer.render(prompt_context)
@@ -355,33 +334,37 @@ def out(
         # Print diagnostics report if diagnostic mode is enabled
         if ctx.obj.get("diagnose", False):
             diagnostics_manager.print_report()
+
+        # Output the content using the appropriate method
+        if output_to := file:
+            from prompy.output import output_to_file
+
+            if output_to_file(resolved_content, file):
+                click.echo(f"Prompt output to file: {output_to}")
+            else:
+                raise PrompyError(
+                    "Failed to write to file",
+                    file_path=output_to,
+                    suggestion="Check file permissions and try again",
+                )
+        if pbcopy:
+            from prompy.output import output_to_clipboard
+
+            if output_to_clipboard(resolved_content):
+                click.echo("Prompt copied to clipboard.")
+            else:
+                raise PrompyError(
+                    "Failed to copy to clipboard",
+                    suggestion="Make sure your system clipboard is accessible",
+                )
+        if not pbcopy and file is None:
+            # Output to stdout with a header
+            from prompy.output import output_to_stdout
+
+            output_to_stdout(resolved_content)
+
     except Exception as e:
-        logger.error(f"Error resolving prompt fragments: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error resolving prompt fragments: {e}", err=True)
-        return
-
-    # Output the content using the appropriate method
-    if output_to := file:
-        from prompy.output import output_to_file
-
-        if output_to_file(resolved_content, file):
-            click.echo(f"Prompt output to file: {output_to}")
-        else:
-            click.echo(f"Failed to write to file: {output_to}", err=True)
-    if pbcopy:
-        from prompy.output import output_to_clipboard
-
-        if output_to_clipboard(resolved_content):
-            click.echo("Prompt copied to clipboard.")
-        else:
-            click.echo("Failed to copy to clipboard.", err=True)
-    if not pbcopy and file is None:
-        # Output to stdout with a header
-        from prompy.output import output_to_stdout
-
-        output_to_stdout(resolved_content)
+        handle_error(e, ctx)
 
 
 @cli.command()
@@ -408,44 +391,38 @@ def save(
     categories: Tuple[str, ...] = (),
     force: bool = False,
 ) -> None:
-    """
-    Save the current one-off prompt as a reusable prompt.
-
-    PROMPT_SLUG specifies where to save the prompt.
-    """
-    # Use context values
+    """Save the current cached prompt to a reusable fragment."""
     project_name = ctx.obj.get("project")
     cache_dir = ctx.obj.get("cache_dir")
-    global_only = ctx.obj.get("global_only")
-
-    if not project_name:
-        click.echo("No project detected. Please specify a project with --project.")
-        return
-
+    global_only = ctx.obj.get("global_only", False)
     prompt_context = from_click_context(ctx)
 
     try:
         # Load the current cache content
         success, content = load_from_cache(cache_dir, project_name)
         if not success or not content:
-            click.echo(f"No current prompt found for project: {project_name}")
-            ctx.exit(1)
-            return
+            raise PrompyError(
+                "No current prompt found",
+                suggestion="Create a new prompt with 'prompy new' or edit an existing one with 'prompy edit'",
+            )
 
         # Get the destination path
         dest_path = prompt_context.parse_prompt_slug(
             prompt_slug, should_exist=False, global_only=global_only
         )
         if not dest_path:
-            click.echo(f"Could not resolve destination path for slug: {prompt_slug}")
-            ctx.exit(1)
-            return
+            raise PrompyError(
+                "Could not resolve destination path",
+                suggestion=f"Check that the slug '{prompt_slug}' is valid",
+            )
 
         # Check if the file already exists
         if dest_path.exists() and not force:
             if not click.confirm(f"File already exists at {dest_path}. Overwrite?"):
-                click.echo("Save operation aborted.")
-                return
+                raise PrompyError(
+                    "Save operation aborted",
+                    suggestion="Use --force to overwrite without confirmation",
+                )
 
         # Generate frontmatter
         from prompy.frontmatter import generate_frontmatter
@@ -463,7 +440,7 @@ def save(
             arguments=frontmatter_dict.get("args", {}),
         )
 
-        # Generate YAML frontmatter string
+        # Generate YAML frontmatter string and save
         prompt_file.frontmatter = prompt_file.generate_frontmatter()
         # Ensure parent directory exists and save
         dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -472,12 +449,7 @@ def save(
         click.echo(f"Prompt saved successfully to: {dest_path}")
 
     except Exception as e:
-        logger.error(f"Error saving prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
-        ctx.exit(1)
-        return
+        handle_error(e, ctx)
 
 
 @cli.command()
@@ -490,8 +462,11 @@ def pbcopy(ctx: click.Context, prompt_slug: Optional[str]) -> None:
     If PROMPT_SLUG is provided, copy that prompt.
     Otherwise, copy the current one-off prompt.
     """
-    # For prompt_slug, call regular out command with --pbcopy flag
-    ctx.invoke(out, prompt_slug=prompt_slug, file=None, pbcopy=True)
+    try:
+        # For prompt_slug, call regular out command with --pbcopy flag
+        ctx.invoke(out, prompt_slug=prompt_slug, file=None, pbcopy=True)
+    except Exception as e:
+        handle_error(e, ctx)
 
 
 @cli.command()
@@ -607,90 +582,58 @@ def list(
     help="Override destination without confirmation if it exists.",
 )
 @click.pass_context
-def mv(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> None:
-    """
-    Move/rename a prompt.
-
-    SOURCE_SLUG is the current location of the prompt.
-    DEST_SLUG is the new location for the prompt.
-    """
-    # Use context values
-    global_only = ctx.obj.get("is_global")
+def cp(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> None:
+    """Copy a prompt to a new location."""
+    from prompy.context import from_click_context
 
     prompt_context = from_click_context(ctx)
+    global_only = ctx.obj.get("global_only", False)
 
     try:
-        # Find source file
-        source_path = prompt_context.parse_prompt_slug(source_slug)
-        if not source_path or not source_path.exists():
-            click.echo(f"Error: Source prompt not found: {source_slug}", err=True)
-            return
+        # Check if source exists
+        source_path = prompt_context.parse_prompt_slug(
+            source_slug, global_only=global_only
+        )
+        assert source_path is not None
 
-        # Load the source prompt
-        source_prompt = PromptFile.load(source_path)
-
-        # Parse the destination slug and get its path
+        # Get destination path
         dest_path = prompt_context.parse_prompt_slug(
             dest_slug, should_exist=False, global_only=global_only
         )
         if not dest_path:
-            click.echo(
-                f"Error: Invalid destination path for slug: {dest_slug}", err=True
+            raise PrompyError(
+                f"Invalid destination slug: {dest_slug}",
+                suggestion="Ensure the destination slug follows the correct format",
             )
-            return
 
-        # Check if destination exists and confirm overwrite if needed
+        # Check if destination exists
         if dest_path.exists() and not force:
             if not click.confirm(
-                f"Destination '{dest_slug}' already exists. Overwrite?"
+                f"Destination already exists: {dest_path}. Overwrite?"
             ):
-                click.echo("Move operation cancelled.")
-                return
+                raise PrompyError(
+                    "Copy operation aborted",
+                    suggestion="Use --force to overwrite without confirmation",
+                )
 
-        # Ensure parent directories exist
+        # Load source prompt to preserve metadata
+        source_prompt = prompt_context.load_slug(source_slug, global_only=global_only)
+
+        # Save to new location
         dest_path.parent.mkdir(parents=True, exist_ok=True)
+        source_prompt.save(dest_path)
 
-        # Set the slug to the new destination slug
-        source_prompt.slug = dest_slug
-
-        # Save the prompt to the new location
-        source_prompt.save(
-            dest_path
-        )  # Remove the original file if successfully saved to new location
+        # Confirm copy worked
         if dest_path.exists():
-            # Update references in all prompt files before removing the original
-            try:
-                click.echo("Updating references in other prompt files...")
-                updates = update_references(prompt_context, source_slug, dest_slug)
-
-                # Count updated files
-                update_count = sum(1 for updated in updates.values() if updated)
-                if update_count > 0:
-                    click.echo(
-                        f"Updated {update_count} file(s) with references to '{source_slug}'."
-                    )
-                else:
-                    click.echo("No references to update.")
-            except Exception as e:
-                logger.warning(f"Error updating references: {e}")
-                if ctx.obj.get("debug"):
-                    logger.exception(e)
-                click.echo(f"Warning: Some references may not have been updated: {e}")
-
-            # Now remove the source file
-            source_path.unlink()
-            click.echo(f"Moved '{source_slug}' to '{dest_slug}'.")
+            click.echo(f"Copied '{source_slug}' to '{dest_slug}'")
         else:
-            click.echo(
-                f"Error: Failed to save to destination path: {dest_path}", err=True
+            raise PrompyError(
+                "Failed to save to destination",
+                suggestion="Check file permissions and try again",
             )
 
     except Exception as e:
-        logger.error(f"Error moving prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
-        return
+        handle_error(e, ctx)
 
 
 @cli.command()
@@ -703,68 +646,67 @@ def mv(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> Non
     help="Override destination without confirmation if it exists.",
 )
 @click.pass_context
-def cp(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> None:
-    """
-    Copy a prompt to a new location.
-
-    SOURCE_SLUG is the source location of the prompt.
-    DEST_SLUG is the destination location for the prompt copy.
-    """
-    # Use context values
-    global_only = ctx.obj.get("is_global")
-
-    prompt_context = from_click_context(ctx)
+def mv(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> None:
+    """Move/rename a prompt from one location to another."""
     try:
-        # Find source file
-        source_path = prompt_context.parse_prompt_slug(source_slug)
-        if not source_path or not source_path.exists():
-            click.echo(f"Error: Source prompt not found: {source_slug}", err=True)
-            return
+        from prompy.context import from_click_context
 
-        # Load the source prompt
-        source_prompt = PromptFile.load(source_path)
+        prompt_context = from_click_context(ctx)
+        global_only = ctx.obj.get("global_only", False)
 
-        # Parse the destination slug and get its path
+        # Check if source exists
+        source_path = prompt_context.parse_prompt_slug(
+            source_slug, global_only=global_only
+        )
+        assert source_path is not None
+
+        # Get destination path
         dest_path = prompt_context.parse_prompt_slug(
             dest_slug, should_exist=False, global_only=global_only
         )
         if not dest_path:
-            click.echo(
-                f"Error: Invalid destination path for slug: {dest_slug}", err=True
+            raise PrompyError(
+                f"Invalid destination slug: {dest_slug}",
+                suggestion="Ensure the destination slug follows the correct format",
             )
-            return
 
-        # Check if destination exists and confirm overwrite if needed
+        # Check if destination exists and handle confirmation
         if dest_path.exists() and not force:
             if not click.confirm(
-                f"Destination '{dest_slug}' already exists. Overwrite?"
+                f"Destination already exists: {dest_path}. Overwrite?"
             ):
-                click.echo("Copy operation cancelled.")
-                return
+                raise PrompyError(
+                    "Move operation aborted",
+                    suggestion="Use --force to overwrite without confirmation",
+                )
 
-        # Ensure parent directories exist
+        # Load source prompt to preserve metadata
+        source_prompt = prompt_context.load_slug(source_slug, global_only=global_only)
+
+        # Save to new location
         dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Set the slug to the new destination slug
-        source_prompt.slug = dest_slug
-
-        # Save the prompt to the new location
         source_prompt.save(dest_path)
 
-        # Confirm copy
-        if dest_path.exists():
-            click.echo(f"Copied '{source_slug}' to '{dest_slug}'.")
+        # Delete source once we've successfully copied to destination
+        source_path.unlink()
+        click.echo(f"Moved '{source_slug}' to '{dest_slug}'")
+
+        # Update references
+        updated_files = update_references(
+            prompt_context,
+            source_slug,
+            dest_slug,
+        )
+
+        if updated_files:
+            num_files = len(updated_files)
+            click.echo(f"✨ Updated references in {num_files} file(s)")
         else:
-            click.echo(
-                f"Error: Failed to save to destination path: {dest_path}", err=True
-            )
+            click.echo("✨ No references to update")
 
     except Exception as e:
-        logger.error(f"Error copying prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
-        return
+        # All errors are handled here, including user cancellations
+        handle_error(e, ctx)
 
 
 @cli.command()
@@ -772,54 +714,40 @@ def cp(ctx: click.Context, source_slug: str, dest_slug: str, force: bool) -> Non
 @click.option("--force", "-f", is_flag=True, help="Remove without confirmation.")
 @click.pass_context
 def rm(ctx: click.Context, prompt_slug: str, force: bool) -> None:
-    """
-    Remove a prompt.
+    """Remove a prompt."""
+    from prompy.context import from_click_context
 
-    PROMPT_SLUG specifies which prompt to remove.
-    """
-    global_only = ctx.obj.get("is_global")
-
-    # Create a prompt context
     prompt_context = from_click_context(ctx)
+    global_only = ctx.obj.get("global_only", False)
 
     try:
-        # Find the file
+        # Check if prompt exists
         file_path = prompt_context.parse_prompt_slug(
             prompt_slug, global_only=global_only
         )
-        if not file_path or not file_path.exists():
-            click.echo(f"Error: Prompt not found: {prompt_slug}", err=True)
-            return
+        assert file_path is not None
 
-        # Confirm deletion unless force flag is used
+        # Confirm deletion if not forced
         if not force:
-            if not click.confirm(f"Are you sure you want to remove '{prompt_slug}'?"):
-                click.echo("Remove operation cancelled.")
-                return
+            if not click.confirm(f"Remove prompt '{prompt_slug}'?"):
+                raise PrompyError(
+                    "Remove operation aborted",
+                    suggestion="Use --force to remove without confirmation",
+                )
 
-        # Delete the file
+        # Remove the file
         try:
             file_path.unlink()
-            click.echo(f"Removed prompt: {prompt_slug}")
-
-            # Check if parent directories are empty and remove them if they are
-            parent_dir = file_path.parent
-            while parent_dir.name and not any(parent_dir.iterdir()):
-                # Don't delete the root prompts directory or anything above it
-                if parent_dir.name in ("prompts", "fragments", "languages", "projects"):
-                    break
-                parent_dir.rmdir()
-                click.echo(f"Removed empty directory: {parent_dir}")
-                parent_dir = parent_dir.parent
-
-        except OSError as e:
-            click.echo(f"Error removing prompt: {e}", err=True)
+            click.echo(f"Removed '{prompt_slug}'")
+        except Exception as e:
+            raise PrompyError(
+                f"Failed to remove {prompt_slug}",
+                str(e),
+                suggestion="Check file permissions and try again",
+            )
 
     except Exception as e:
-        logger.error(f"Error removing prompt: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
+        handle_error(e, ctx)
         return
 
 
@@ -831,132 +759,88 @@ def rm(ctx: click.Context, prompt_slug: str, force: bool) -> None:
 )
 @click.pass_context
 def detections(ctx: click.Context, validate: bool) -> None:
-    """
-    Edit language detection rules.
+    """Edit or validate language detection rules."""
+    detections_file = ctx.obj.get("detections_file")
 
-    Opens the detections.yaml file in your default editor, allowing you to customize language detection rules.
-    If the --validate flag is set, it will only validate the file format without opening the editor.
-    """
-    config_dir = ctx.obj.get("config_dir")
-    detections_file = config_dir / "detections.yaml"
-
-    # Check if the file exists, if not create it with default rules
-    if not detections_file.exists():
-        from prompy.config import get_default_detections
-
-        with open(detections_file, "w") as f:
-            yaml.dump(get_default_detections(), f, sort_keys=False)
-        click.echo(f"Created detections file at {detections_file}")
-
-    # Validate the file format
     try:
-        with open(detections_file, "r") as f:
-            detections = yaml.safe_load(f)
+        # Load current detections
+        try:
+            with open(detections_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                current_detections = yaml.safe_load(content)
+        except FileNotFoundError:
+            raise PrompyError(
+                "Detections file not found",
+                details=f"Could not find file at: {detections_file}",
+                suggestion="💡 Run 'prompy detections' to create and edit the detections file, or check file permissions",
+            )
+        except yaml.YAMLError as e:
+            # Get file content and extract error info
+            try:
+                with open(detections_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except:
+                content = None
 
-        # Check the structure of the detections file
-        if not isinstance(detections, dict):
-            click.echo("Error: Invalid detections file format. Expected a dictionary.")
+            # Extract line/column info from the error message
+            error_msg = str(e)
+            line_match = re.search(r"line (\d+)", error_msg)
+            col_match = re.search(r"column (\d+)", error_msg)
+            line_num = int(line_match.group(1)) if line_match else None
+            col_num = int(col_match.group(1)) if col_match else None
+
+            raise PrompyError(
+                "Invalid YAML in detections file",
+                details=error_msg,
+                suggestion="💡 Fix the YAML syntax error and try again:\n"
+                + "  - Check indentation levels\n"
+                + "  - Ensure all quotes are properly closed\n"
+                + "  - Verify list items use consistent formatting",
+                file_path=str(detections_file),
+                snippet=content,
+                snippet_line=line_num,
+                snippet_column=col_num,
+            )
+
+        if validate:
+            # Just validate the file and exit
+            click.echo("✅ Detections file is valid.")
             return
 
-        # Validate each language section
-        valid = True
-        for lang, rules in detections.items():
-            if not isinstance(rules, dict):
-                click.echo(
-                    f"Error: Invalid rules for language '{lang}'. Expected a dictionary."
-                )
-                valid = False
-                continue  # Check required keys
-            for key in ["file_patterns", "dir_patterns"]:
-                if key not in rules:
-                    click.echo(f"Warning: Missing '{key}' for language '{lang}'.")
-                elif not isinstance(rules[key], List):
-                    click.echo(
-                        f"Error: Invalid '{key}' for language '{lang}'. Expected a list."
-                    )
-                    valid = False
+        # Launch editor with an empty PromptFiles since we don't need fragment help text
+        empty_prompt_files = PromptFiles(
+            project_name=None,
+            language_name=None,
+            languages={},
+            projects={},
+            fragments={},
+        )
+        success = edit_file_with_comments(str(detections_file), empty_prompt_files)
+        if not success:
+            raise PrompyError(
+                "Failed to edit detections file",
+                details=f"Could not save changes to: {detections_file}",
+                suggestion="💡 Make sure you have write permissions and try again",
+            )
 
-        if validate:
-            if valid:
-                click.echo("Detections file is valid.")
-            else:
-                click.echo("Detections file has validation errors.")
-                sys.exit(1)
-            return
-    except yaml.YAMLError as e:
-        click.echo(f"Error: Invalid YAML format in detections file: {e}")
-        if validate:
-            sys.exit(1)
-        return
-    except IOError as e:
-        click.echo(f"Error: Could not read detections file: {e}")
-        if validate:
-            sys.exit(1)
-        return
-
-    # If we're not just validating, open the editor
-    from prompy.editor import edit_file_with_comments, find_editor
-
-    # Create a description/help text for the detections file
-    help_text = """
-# Prompy Language Detection Configuration
-#
-# This file configures how Prompy detects programming languages in your projects.
-# For each language, you can define:
-#
-# file_patterns: List of file patterns (glob) that indicate this language
-# dir_patterns: List of directory patterns (glob) that indicate this language
-# content_patterns: List of strings to look for in file contents
-# weight: Optional weight multiplier for this language (default: 1.0)
-#
-# Example:
-# python:
-#   file_patterns:
-#     - "*.py"
-#     - "requirements.txt"
-#   dir_patterns:
-#     - ".venv"
-#     - "__pycache__"
-#   content_patterns:
-#     - "import "
-#     - "def "
-#   weight: 1.0
-"""
-
-    # Add the help text to the detections file if it doesn't already have it
-    with open(detections_file, "r") as f:
-        content = f.read()
-
-    if "# Prompy Language Detection Configuration" not in content:
-        with open(detections_file, "w") as f:
-            f.write(
-                help_text + content
-            )  # Open the editor directly without using edit_file_with_comments since we don't need
-    # all the prompt handling functionality for the detections file
-    try:
-        # Launch the editor with the file
-        return_code = launch_editor(str(detections_file))
-
-        if return_code == 0:
-            click.echo("Detections configuration updated.")
-
-            # Validate the updated file
-            with open(detections_file, "r") as f:
-                try:
-                    yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    click.echo(
-                        f"Warning: The updated detections file contains YAML errors: {e}"
-                    )
-        else:
-            click.echo("Error: Failed to update detections configuration.")
+        # Validate after editing
+        try:
+            with open(detections_file, "r", encoding="utf-8") as f:
+                yaml.safe_load(f)
+                click.echo("✅ Detections configuration updated and validated.")
+        except yaml.YAMLError as e:
+            raise PrompyError(
+                "Invalid YAML in edited detections file",
+                details=str(e),
+                suggestion="💡 Fix the YAML syntax and try again:\n"
+                + "  - Check indentation levels\n"
+                + "  - Ensure all quotes are properly closed\n"
+                + "  - Verify list items use consistent formatting",
+                file_path=str(detections_file),
+            )
 
     except Exception as e:
-        logger.error(f"Error editing detections file: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
-        return
+        handle_error(e, ctx)
 
 
 @cli.command()

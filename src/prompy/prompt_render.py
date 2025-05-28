@@ -91,8 +91,10 @@ class PromptRender:
                 self._template_cache[content] = template
             except TemplateSyntaxError as e:
                 # Convert Jinja2 syntax error to a more specific error
-                raise ValueError(
-                    f"Template syntax error at line {e.lineno}: {e.message}"
+                raise PrompyTemplateSyntaxError(
+                    e.message or "Template syntax error",
+                    line_number=e.lineno,
+                    file_path=self.prompt_file.slug,
                 )
         return template
 

@@ -5,6 +5,7 @@ Module for handling prompt context and resolving paths.
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from prompy.error_handling import FragmentNotFoundError
 from prompy.prompt_file import PromptFile
 from prompy.prompt_files import PromptFiles
 
@@ -40,7 +41,7 @@ class PromptContext:
         self._project_dirs = project_dirs if project_dirs is not None else []
         self._language_dirs = language_dirs if language_dirs is not None else []
 
-    def _search_directories(
+    def _find_file_in_directories(
         self,
         slug_suffix: str,
         directories: List[Path],
@@ -61,19 +62,18 @@ class PromptContext:
         """
         # If global_only is True, only use the last directory in the list
         search_dirs = [directories[-1]] if global_only and directories else directories
+        files = [directory / f"{slug_suffix}.md" for directory in directories]
 
         # If searching for an existing file, check each directory in order
         if should_exist:
-            for directory in search_dirs:
-                # For fragment directories, use the path directly
-                file_path = directory / f"{slug_suffix}.md"
+            for file_path in files:
                 if file_path.exists():
                     return file_path
-            return None
+            files = [str(file) for file in files]
+            raise FragmentNotFoundError(fragment_slug=slug_suffix, search_paths=files)
         # If not requiring an existing file, use the first directory
-        elif search_dirs:
-            directory = search_dirs[0]
-            return directory / f"{slug_suffix}.md"
+        elif files:
+            return files[0]
 
         return None
 
@@ -94,7 +94,7 @@ class PromptContext:
         # Handle special variables in the slug
         if self.project_name and (suffix := self._strip_prefix(slug, "project/")):
             # Use project_dirs to search for the file
-            return self._search_directories(
+            return self._find_file_in_directories(
                 suffix, self._project_dirs, should_exist, global_only
             )
         elif self.language and (
@@ -102,13 +102,13 @@ class PromptContext:
             or self._strip_prefix(slug, "$env/")
         ):
             # Use language_dirs to search for the file
-            return self._search_directories(
+            return self._find_file_in_directories(
                 suffix, self._language_dirs, should_exist, global_only
             )
         # Check if the slug starts with "fragments/"
         elif slug.startswith("fragments/"):
             # Strip the "fragments/" prefix and search in fragment_dirs
-            return self._search_directories(
+            return self._find_file_in_directories(
                 slug[10:],  # Remove 'fragments/' prefix
                 self._fragment_dirs,
                 should_exist,
@@ -116,7 +116,7 @@ class PromptContext:
             )
         else:
             # For slugs without any special prefixes, search in fragment_dirs as-is
-            return self._search_directories(
+            return self._find_file_in_directories(
                 slug, self._fragment_dirs, should_exist, global_only
             )
 
@@ -129,9 +129,7 @@ class PromptContext:
             return slug.removeprefix(prefix)
         return None
 
-    def load_slug(
-        self, slug: str, should_exist: bool = True, global_only: bool = False
-    ) -> PromptFile:
+    def load_slug(self, slug: str, global_only: bool = False) -> PromptFile:
         """
         Parse a prompt slug and load it as a PromptFile.
 
@@ -146,9 +144,8 @@ class PromptContext:
         Raises:
             FileNotFoundError: If the slug doesn't resolve to a valid file
         """
-        path = self.parse_prompt_slug(slug, should_exist, global_only)
-        if path is None:
-            raise FileNotFoundError(f"Could not find prompt file for slug: {slug}")
+        path = self.parse_prompt_slug(slug, True, global_only)
+        assert path is not None
 
         prompt_file = PromptFile.load(path, slug=slug)
         return prompt_file
