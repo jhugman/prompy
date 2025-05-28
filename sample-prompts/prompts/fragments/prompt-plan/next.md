@@ -14,4 +14,4 @@ description: Look for the next prompt and perform it
     - Make sure the tests pass, and the program builds/runs
     - Update **docs/prompt-plan.md** to mark this prompt as completed.
     - Commit the changes to your repository with a clear commit message.
-5. After you finish each prompt, pause and wait for user review or feedback.
+5. After you finish the prompt, pause and wait for user review or feedback.
