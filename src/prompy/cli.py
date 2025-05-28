@@ -29,6 +29,7 @@ from prompy.config import (
     find_project_dir,
 )
 from prompy.context import create_prompt_context, from_click_context
+from prompy.diagnostics import diagnostics_manager, enable_diagnostics
 from prompy.editor import (
     edit_file_with_comments,
     find_editor,
@@ -52,6 +53,9 @@ logger = logging.getLogger(__name__)
 @click.group(invoke_without_command=True)
 @click.option("--version", is_flag=True, help="Show the version and exit.")
 @click.option("--debug", is_flag=True, help="Enable debug logging.")
+@click.option(
+    "--diagnose", is_flag=True, help="Enable diagnostic mode for fragment resolution."
+)
 @click.option("--language", help="Specify the language manually.")
 @click.option("--project", help="Specify the project manually.")
 @click.option(
@@ -65,6 +69,7 @@ def cli(
     ctx: click.Context,
     version: bool,
     debug: bool,
+    diagnose: bool,
     language: Optional[str],
     project: Optional[str],
     global_only: bool,
@@ -80,6 +85,15 @@ def cli(
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+
+    # Enable diagnostics if requested
+    if diagnose:
+        enable_diagnostics()
+        logging.info("Diagnostic mode enabled")
+
+    # Store diagnostic mode in the context
+    ctx.ensure_object(dict)
+    ctx.obj["diagnose"] = diagnose
 
     if version:
         click.echo(f"Prompy version {__version__}")
@@ -330,12 +344,17 @@ def out(
         return
 
     # Resolve fragment references in the content
+    from prompy.diagnostics import diagnostics_manager
     from prompy.prompt_render import PromptRender
 
     try:
         # Create a PromptFile object from the content
         renderer = PromptRender(prompt_file)
         resolved_content = renderer.render(prompt_context)
+
+        # Print diagnostics report if diagnostic mode is enabled
+        if ctx.obj.get("diagnose", False):
+            diagnostics_manager.print_report()
     except Exception as e:
         logger.error(f"Error resolving prompt fragments: {e}")
         if ctx.obj.get("debug"):
@@ -929,10 +948,8 @@ def detections(ctx: click.Context, validate: bool) -> None:
                     click.echo(
                         f"Warning: The updated detections file contains YAML errors: {e}"
                     )
-            return True
         else:
             click.echo("Error: Failed to update detections configuration.")
-            return False
 
     except Exception as e:
         logger.error(f"Error editing detections file: {e}")
