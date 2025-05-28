@@ -551,10 +551,10 @@ You will be implementing performance improvements for the Prompy tool's fragment
    - Edge cases with complex nested references
 
 Tasks:
-- [ ] Optimize regular expression patterns
-- [ ] Refactor complex methods for clarity
-- [ ] Update existing tests to cover optimizations
-- [ ] PROMPT 14 COMPLETE
+- [x] Optimize regular expression patterns
+- [x] Refactor complex methods for clarity
+- [x] Update existing tests to cover optimizations
+- [x] PROMPT 14 COMPLETE
 ```
 
 ### PROMPT 15: Enhanced Error Reporting and Diagnostics
