@@ -537,6 +537,153 @@ Tasks:
 - [x] PROMPT 13 COMPLETE
 ```
 
+### PROMPT 14: Performance Optimization and Code Quality
+
+```
+You will be implementing performance improvements for the Prompy tool's fragment resolution system. This builds on previous work in prompt_render.py and jinja_extension.py.
+
+1. Profile the fragment resolution process:
+   - Add timing instrumentation to measure rendering performance
+   - Identify bottlenecks in the rendering process
+   - Focus on scenarios with deeply nested fragment references
+
+2. Optimize the fragment resolution algorithm:
+   - Implement caching for resolved fragments to avoid redundant processing
+   - Optimize the regular expression patterns for better performance
+   - Consider using a more efficient parsing approach for complex templates
+
+3. Refactor complex methods for improved readability:
+   - Break down large methods into smaller, focused functions
+   - Add clear documentation explaining the algorithm
+   - Ensure consistent error handling throughout
+
+4. Write comprehensive tests for:
+   - Performance improvements with benchmarking
+   - Correctness of optimized rendering
+   - Edge cases with complex nested references
+
+Tasks:
+- [ ] Add timing instrumentation for profiling
+- [ ] Identify and document performance bottlenecks
+- [ ] Implement fragment resolution caching
+- [ ] Optimize regular expression patterns
+- [ ] Refactor complex methods for clarity
+- [ ] Update existing tests to cover optimizations
+- [ ] Add performance benchmark tests
+- [ ] PROMPT 14 COMPLETE
+```
+
+### PROMPT 15: Enhanced Error Reporting and Diagnostics
+
+```
+You will be implementing enhanced error reporting and diagnostics for the Prompy tool. This builds on previous work in error_handling.py and the various command implementations.
+
+1. Improve error context information:
+   - Add more detailed location information for syntax errors
+   - Include snippet of the problematic template content in error messages
+   - Provide suggested fixes for common errors
+
+2. Create a diagnostic mode:
+   - Implement a --diagnose flag for commands
+   - Show detailed information about fragment resolution process
+   - Display timing data for performance analysis
+
+3. Enhance debugging capabilities:
+   - Add structured logging throughout the codebase
+   - Create visualization of fragment resolution tree
+   - Implement step-by-step resolution tracing
+
+4. Write comprehensive tests for:
+   - Error reporting with various error types
+   - Diagnostic mode output format
+   - Debug logging content and structure
+
+Tasks:
+- [ ] Enhance error messages with more context
+- [ ] Add template snippet to syntax error reports
+- [ ] Implement suggestion system for common errors
+- [ ] Create diagnostic mode flag and functionality
+- [ ] Add structured logging for debugging
+- [ ] Implement fragment resolution visualization
+- [ ] Write tests for enhanced error reporting
+- [ ] Write tests for diagnostic mode
+- [ ] PROMPT 15 COMPLETE
+```
+
+### PROMPT 16: Advanced User Experience Improvements
+
+```
+You will be implementing advanced user experience improvements for the Prompy tool. This builds on previous work in cli.py, editor.py, and output.py.
+
+1. Create interactive selection mode:
+   - Add interactive prompt selection using a TUI library
+   - Implement search functionality for prompt fragments
+   - Show preview of selected fragments
+
+2. Enhance editor experience:
+   - Add syntax highlighting hints for fragment references
+   - Implement auto-completion suggestions in comment section
+   - Create better formatting for the help text
+
+3. Improve output formatting:
+   - Add colorized output for terminal display
+   - Implement different output formats (markdown, plain text, etc.)
+   - Create beautified clipboard output
+
+4. Write comprehensive tests for:
+   - Interactive selection functionality
+   - Enhanced editor features
+   - Output formatting options
+
+Tasks:
+- [ ] Research and select appropriate TUI library
+- [ ] Implement interactive prompt selection
+- [ ] Add search functionality for fragments
+- [ ] Create preview functionality for fragments
+- [ ] Enhance editor comments for better usability
+- [ ] Implement colorized terminal output
+- [ ] Add multiple output format options
+- [ ] Write tests for interactive features
+- [ ] PROMPT 16 COMPLETE
+```
+
+### PROMPT 17: Distribution and Installation Enhancements
+
+```
+You will be implementing distribution and installation enhancements for the Prompy tool. This builds on previous work in setup.py and the installation scripts.
+
+1. Finalize PyPI packaging:
+   - Update package metadata for better discoverability
+   - Create proper entry points for all commands
+   - Ensure dependencies are correctly specified
+
+2. Create platform-specific installers:
+   - Add support for pip, brew, and other package managers
+   - Create standalone executables for Windows
+   - Test installation process on different platforms
+
+3. Implement automatic updates:
+   - Add version checking functionality
+   - Create update notification system
+   - Implement self-update capability
+
+4. Write comprehensive tests for:
+   - Package installation process
+   - Entry point functionality
+   - Update checking mechanism
+
+Tasks:
+- [ ] Update package metadata for PyPI
+- [ ] Finalize entry points configuration
+- [ ] Review and update dependencies
+- [ ] Create Homebrew formula for macOS
+- [ ] Build standalone executable for Windows
+- [ ] Implement version checking functionality
+- [ ] Add update notification system
+- [ ] Write tests for package installation
+- [ ] PROMPT 17 COMPLETE
+```
+
 ## Conclusion
 
 This prompt plan outlines a step-by-step approach to implementing Prompy, breaking the work into manageable chunks that build upon each other. Each prompt focuses on a specific aspect of functionality, with clear testing requirements and deliverables. Following this plan will result in a well-structured, tested, and robust implementation of the tool as specified in the requirements.
