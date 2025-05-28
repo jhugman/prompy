@@ -1,16 +1,55 @@
 """
-Test module for the Jinja2 integration.
+Test module for the Jinj    def mock_load_slug(slug: str) -> PromptFile:
+        return PromptFile(
+            slug,
+            {"description": f"Test prompt for {slug}"},
+            f"Content for {slug}",
+            f"{slug}.md"
+        )gration.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 from jinja2 import Environment
+from jinja2.ext import Extension
 
 from prompy.jinja_extension import PrompyExtension, create_jinja_environment
 from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
 from prompy.prompt_render import PromptRender
+
+
+def create_test_extension(env: Environment) -> Extension:
+    """
+    Create a PrompyExtension instance with a mock context for testing.
+
+    Args:
+        env: The Jinja2 environment to attach the extension to
+
+    Returns:
+        Extension: The configured extension instance
+    """
+    mock_context = MagicMock(spec=PromptContext)
+
+    # Configure the mock context to return test prompt files
+    def mock_load_slug(slug: str) -> PromptFile:
+        return PromptFile(
+            slug=slug,
+            description=f"Test prompt for {slug}",
+            markdown_template=f"Content for {slug}",
+        )
+
+    mock_context.load_slug.side_effect = mock_load_slug
+
+    # Get the extension instance
+    ext = env.extensions[PrompyExtension.identifier]
+
+    # Set up the environment globals
+    env.globals["_prompy_context"] = mock_context
+    env.globals["_fragment_stack"] = []
+
+    return ext
 
 
 def test_jinja_environment_creation():
