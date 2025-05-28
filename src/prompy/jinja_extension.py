@@ -3,11 +3,13 @@ Module for Jinja2 extension to support Prompy's fragment inclusion syntax.
 """
 
 import re
+import time
 from typing import Any, cast
 
 from jinja2 import Environment, Template
 from jinja2.ext import Extension
 
+from .diagnostics import FragmentResolutionNode, diagnostics_manager
 from .prompt_context import PromptContext
 
 # Pre-compile regular expressions for better performance
@@ -241,13 +243,44 @@ class PrompyExtension(Extension):
         Returns:
             The rendered fragment content
         """
+        # Start timing for diagnostics
+        start_time = time.time() if hasattr(time, "time") else None
+
+        from .diagnostics import diagnostics_manager
+
+        # Add diagnostic event
+        diagnostics_manager.add_event(
+            "fragment_include_start",
+            slug=__slug,
+            args=args,
+            kwargs={k: v for k, v in kwargs.items() if k != "indent"},
+        )
+
+        # Create resolution node for this fragment
+        parent_node = self.environment.globals.get("_resolution_node")
+        current_node = None
+
+        if parent_node and self.environment.globals.get("_resolution_tracking", False):
+            current_node = FragmentResolutionNode(
+                slug=__slug,
+                depth=len(self.environment.globals.get("_fragment_stack", [])),
+                arguments={k: v for k, v in kwargs.items() if k != "indent"},
+            )
+            parent_node.children.append(current_node)
+
+            # Temporarily make this node the current node for nested fragments
+            self.environment.globals["_resolution_node"] = current_node
+
         # Extract indent from kwargs if present
         indent_prefix = kwargs.pop("indent", "")
 
         # Get context from environment globals
         context = self.environment.globals.get("_prompy_context")
         if not context:
-            raise ValueError("Prompy context not available in Jinja2 environment")
+            error_msg = "Prompy context not available in Jinja2 environment"
+            if current_node:
+                current_node.error = error_msg
+            raise ValueError(error_msg)
 
         # Get fragment stack from globals to track fragment inclusion
         fragment_stack = self.environment.globals.get("_fragment_stack", [])
@@ -255,11 +288,27 @@ class PrompyExtension(Extension):
         # Detect cycles
         if __slug in fragment_stack:
             cycle_path = " -> ".join([f"@{s}" for s in fragment_stack + [__slug]])
-            raise ValueError(f"Cyclic reference detected: {cycle_path}")
+            error_msg = f"Cyclic reference detected: {cycle_path}"
+            if current_node:
+                current_node.error = error_msg
+            diagnostics_manager.add_event(
+                "fragment_cycle_detected",
+                slug=__slug,
+                cycle_path=fragment_stack + [__slug],
+            )
+            raise ValueError(error_msg)
 
         try:
             # Load the referenced fragment
+            fragment_load_start = time.time() if hasattr(time, "time") else None
             fragment_file = context.load_slug(__slug)
+            fragment_load_time = (
+                time.time() - fragment_load_start if fragment_load_start else None
+            )
+
+            diagnostics_manager.add_event(
+                "fragment_loaded", slug=__slug, duration=fragment_load_time
+            )
 
             # Update the fragment stack to track the inclusion
             new_stack = fragment_stack + [__slug]
@@ -270,14 +319,42 @@ class PrompyExtension(Extension):
             # Update the stack in the environment
             self.environment.globals["_fragment_stack"] = new_stack
 
+            # Track this slug in the set of referenced slugs for diagnostics
+            if "_referenced_slugs" in self.environment.globals:
+                self.environment.globals["_referenced_slugs"].add(__slug)
+
             # Get or create template instance from cache
+            template_start = time.time() if hasattr(time, "time") else None
             fragment_template = self._get_cached_template(fragment_file)
+            template_time = time.time() - template_start if template_start else None
+
+            diagnostics_manager.add_event(
+                "fragment_template_created", slug=__slug, duration=template_time
+            )
 
             # Create variable context for rendering
+            context_start = time.time() if hasattr(time, "time") else None
             vars_context = self._prepare_template_context(fragment_file, args, kwargs)
+            context_time = time.time() - context_start if context_start else None
+
+            diagnostics_manager.add_event(
+                "fragment_context_prepared",
+                slug=__slug,
+                duration=context_time,
+                context_size=len(vars_context),
+            )
 
             # Render the fragment with the context
+            render_start = time.time() if hasattr(time, "time") else None
             result = fragment_template.render(vars_context)
+            render_time = time.time() - render_start if render_start else None
+
+            diagnostics_manager.add_event(
+                "fragment_rendered",
+                slug=__slug,
+                duration=render_time,
+                result_length=len(result),
+            )
 
             # Apply indentation if needed and if there's content with multiple lines
             if indent_prefix and "\n" in result:
@@ -287,6 +364,21 @@ class PrompyExtension(Extension):
 
             # Restore the original stack
             self.environment.globals["_fragment_stack"] = original_stack
+
+            # If we're tracking resolution, update the duration and restore the parent node
+            if current_node:
+                current_node.duration = (
+                    time.time() - start_time if start_time else 0.001
+                )
+                # Restore parent node
+                if parent_node:
+                    self.environment.globals["_resolution_node"] = parent_node
+
+            diagnostics_manager.add_event(
+                "fragment_include_end",
+                slug=__slug,
+                duration=time.time() - start_time if start_time else None,
+            )
 
             return result
 

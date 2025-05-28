@@ -3,12 +3,16 @@ Module for rendering prompt templates with fragment resolution using Jinja2.
 """
 
 import re
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Match, Optional, Set, Tuple, Union, cast
 
 from jinja2 import Environment, Template, TemplateSyntaxError
 
+from prompy.error_handling import PrompyTemplateSyntaxError
+
+from .diagnostics import FragmentResolutionNode, diagnostics_manager
 from .jinja_extension import create_jinja_environment
 from .prompt_context import PromptContext
 from .prompt_file import PromptFile
@@ -105,25 +109,83 @@ class PromptRender:
         Raises:
             ValueError: If a fragment can't be resolved or there's a cycle
         """
-        # Add the current prompt file slug to the fragment stack to detect cycles
-        self.env.globals["_fragment_stack"] = [self.prompt_file.slug]
+        diagnostics_manager.start_operation("render", slug=self.prompt_file.slug)
 
-        # Set the prompt context in the environment
-        self.env.globals["_prompy_context"] = context
-
-        # Get the template content
-        template_content = self.prompt_file.markdown_template.strip()
-        arguments = self.prompt_file.arguments or {}
-
-        # Get or create template from cache
-        template = self._get_template(template_content)
-
-        # Render the template with the arguments
         try:
-            return template.render(arguments)
-        except ValueError as e:
-            # Re-raise ValueError errors (like cyclic references)
-            raise
-        except Exception as e:
-            # Convert other exceptions to a more specific error
-            raise ValueError(f"Error rendering template: {str(e)}")
+            # Create a root node for the resolution tree
+            resolution_root = FragmentResolutionNode(slug=self.prompt_file.slug)
+            self.env.globals["_resolution_node"] = resolution_root
+            self.env.globals["_resolution_tracking"] = True
+
+            # Add the current prompt file slug to the fragment stack to detect cycles
+            self.env.globals["_fragment_stack"] = [self.prompt_file.slug]
+
+            # Store a set of all referenced slugs for diagnostics (used for visualization)
+            self.env.globals["_referenced_slugs"] = set()
+
+            # Set the prompt context in the environment
+            self.env.globals["_prompy_context"] = context
+
+            # Get the template content
+            template_content = self.prompt_file.markdown_template.strip()
+            arguments = self.prompt_file.arguments or {}
+
+            diagnostics_manager.add_event(
+                "template_loaded",
+                slug=self.prompt_file.slug,
+                content_length=len(template_content),
+            )
+
+            # Get or create template from cache
+            start_time = time.time()
+            template = self._get_template(template_content)
+            template_compile_time = time.time() - start_time
+
+            diagnostics_manager.add_event(
+                "template_compiled",
+                slug=self.prompt_file.slug,
+                duration=template_compile_time,
+            )
+
+            # Record arguments in the root node
+            resolution_root.arguments = arguments.copy()
+
+            # Render the template with the arguments
+            try:
+                start_time = time.time()
+                result = template.render(arguments)
+                render_time = time.time() - start_time
+
+                # Update resolution node with duration
+                resolution_root.duration = render_time
+
+                # Record the resolution tree
+                diagnostics_manager.record_fragment_resolution(resolution_root)
+
+                diagnostics_manager.add_event(
+                    "template_rendered",
+                    slug=self.prompt_file.slug,
+                    duration=render_time,
+                    result_length=len(result),
+                    referenced_slugs=list(
+                        self.env.globals.get("_referenced_slugs", set())
+                    ),
+                )
+
+                return result
+            except ValueError as e:
+                # Mark the error in the resolution node
+                resolution_root.error = str(e)
+                diagnostics_manager.record_fragment_resolution(resolution_root)
+
+                # Re-raise ValueError errors (like cyclic references)
+                raise
+            except Exception as e:
+                # Mark the error in the resolution node
+                resolution_root.error = str(e)
+                diagnostics_manager.record_fragment_resolution(resolution_root)
+
+                # Convert other exceptions to a more specific error
+                raise ValueError(f"Error rendering template: {str(e)}")
+        finally:
+            diagnostics_manager.end_operation("render", slug=self.prompt_file.slug)
