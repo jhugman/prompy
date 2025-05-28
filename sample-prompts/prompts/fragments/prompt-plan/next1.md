@@ -1,6 +1,7 @@
 ---
 description: Systematic approach for implementing the next prompt in a development plan
 ---
+{{ @rules/all }}
 
 # Project Development Assistant - Next Task Implementation
 
