@@ -244,8 +244,10 @@ def test_mv_command_existing_destination(mock_management_env):
             ],
         )
 
-        assert result.exit_code == 0
-        assert "Move operation cancelled" in result.output
+        assert result.exit_code == 1  # Operation canceled should return error code
+        assert "Move operation aborted" in result.output
+        assert "💡 Suggestion:" in result.output
+        assert "--force" in result.output
 
         # Both files should still exist
         source_path = prompts_dir / "fragments" / "test-fragment.md"
@@ -346,12 +348,9 @@ Another reference: @test-fragment(arg1, key="value").
                 catch_exceptions=False,
             )
 
-            # Print debug info
-            print(f"Command output: {result.output}")
-
         assert result.exit_code == 0
         assert "Moved 'test-fragment' to 'renamed-fragment'" in result.output
-        assert "Updated 1 file(s) with references" in result.output
+        assert "✨ Updated references in 1 file(s)" in result.output
 
         # Verify the mock was called correctly
         mock_update.assert_called_once()
@@ -387,7 +386,8 @@ def test_mv_command_no_references(mock_management_env):
         )
 
         assert result.exit_code == 0
-        assert "No references to update" in result.output
+        assert "Moved 'test-fragment' to 'renamed-fragment'" in result.output
+        assert "✨ No references to update" in result.output
 
 
 def test_rm_command(mock_management_env):
@@ -410,7 +410,7 @@ def test_rm_command(mock_management_env):
         )
 
         assert result.exit_code == 0
-        assert "Removed prompt: test-fragment" in result.output
+        assert "Removed 'test-fragment'" in result.output
 
         # Verify the file was removed
         file_path = prompts_dir / "fragments" / "test-fragment.md"
@@ -436,8 +436,10 @@ def test_rm_command_cancel(mock_management_env):
             ],
         )
 
-        assert result.exit_code == 0
-        assert "Remove operation cancelled" in result.output
+        assert result.exit_code == 1  # Operation canceled should return error code
+        assert "Remove operation aborted" in result.output
+        assert "💡 Suggestion:" in result.output
+        assert "--force" in result.output
 
         # Verify the file still exists
         file_path = prompts_dir / "fragments" / "test-fragment.md"
@@ -463,7 +465,7 @@ def test_rm_command_force(mock_management_env):
     )
 
     assert result.exit_code == 0
-    assert "Removed prompt: test-fragment" in result.output
+    assert "Removed 'test-fragment'" in result.output
 
     # Verify the file was removed
     file_path = prompts_dir / "fragments" / "test-fragment.md"

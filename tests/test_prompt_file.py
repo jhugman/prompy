@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 import pytest
 import yaml
 
+from prompy.error_handling import FragmentNotFoundError
 from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
 from prompy.prompt_files import PromptFiles
@@ -247,7 +248,8 @@ def test_prompt_context():
         assert context.parse_prompt_slug("language/test") == language_file
         assert context.parse_prompt_slug("fragments/test") == fragment_file
         assert context.parse_prompt_slug("project/test") == project_file
-        assert context.parse_prompt_slug("nonexistent") is None
+        with pytest.raises(FragmentNotFoundError):
+            context.parse_prompt_slug("nonexistent")
 
         # Test load_slug
         project_prompt = context.load_slug("project/test")
@@ -256,7 +258,7 @@ def test_prompt_context():
         language_prompt = context.load_slug("language/test")
         assert language_prompt.description == "Language test"
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(FragmentNotFoundError):
             context.load_slug("nonexistent")
 
         # Test load_all

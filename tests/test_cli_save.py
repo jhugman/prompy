@@ -323,4 +323,7 @@ def test_save_command_no_project(mock_save_env):
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["save", "test/no-project-prompt"])
 
-        assert "No project detected" in result.output
+        assert result.exit_code == 1  # Error exit code
+        assert "Error: No current prompt found" in result.output
+        assert "💡 Suggestion:" in result.output
+        assert "Create a new prompt with 'prompy new'" in result.output

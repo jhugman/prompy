@@ -84,8 +84,11 @@ def test_out_command():
     runner = CliRunner()
     # Use a non-existent project name to ensure no cache file is found
     result = runner.invoke(cli, ["--project", "non-existent-project", "out"])
-    assert result.exit_code == 0
-    assert "No current prompt found for project" in result.output
+    assert result.exit_code == 1  # Error exit code
+    assert "No current prompt found" in result.output
+    assert (
+        "Try specifying a prompt slug or providing content via stdin" in result.output
+    )
 
 
 def test_save_command():
@@ -108,11 +111,11 @@ def test_list_command():
 def test_mv_command():
     """Test that the mv command works."""
     runner = CliRunner()
-    # The mv command now tries to find real files, and since they don't exist,
-    # it reports an error but returns a success exit code
+    # The mv command should fail with an error code when files don't exist
     result = runner.invoke(cli, ["mv", "source/slug", "dest/slug"])
-    assert result.exit_code == 0
-    assert "Error: Source prompt not found" in result.output
+    assert result.exit_code == 1
+    assert "Can't find prompt fragment '@source/slug'" in result.output
+    assert "💡 Suggestion:" in result.output
 
 
 def test_rm_command():
@@ -126,8 +129,10 @@ def test_rm_command():
             mock_exists.return_value = True
             # Simulate 'no' at the confirmation prompt
             result = runner.invoke(cli, ["rm", "test/slug"], input="n\n")
-            assert result.exit_code == 0
-            assert "operation cancelled" in result.output.lower()
+            assert result.exit_code == 1  # Operation canceled should return error code
+            assert "Remove operation aborted" in result.output
+            assert "💡 Suggestion:" in result.output
+            assert "--force" in result.output
 
 
 def test_detections_command():
@@ -147,7 +152,7 @@ def test_detections_command():
     ):
         result = runner.invoke(cli, ["detections"], catch_exceptions=False)
         assert result.exit_code == 0
-        assert "Detections configuration updated" in result.output
+        assert "✅ Detections configuration updated and validated" in result.output
 
 
 def test_edit_command_with_editor():

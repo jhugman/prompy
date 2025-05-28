@@ -9,6 +9,8 @@ from typing import Any, cast
 from jinja2 import Environment, Template
 from jinja2.ext import Extension
 
+from prompy.error_handling import CyclicReferenceError, MissingArgumentError
+
 from .diagnostics import FragmentResolutionNode, diagnostics_manager
 from .prompt_context import PromptContext
 
@@ -287,16 +289,17 @@ class PrompyExtension(Extension):
 
         # Detect cycles
         if __slug in fragment_stack:
-            cycle_path = " -> ".join([f"@{s}" for s in fragment_stack + [__slug]])
-            error_msg = f"Cyclic reference detected: {cycle_path}"
+            cycle_path = fragment_stack + [__slug]
+            cycle_path_str = " -> ".join(cycle_path)
+            error_msg = f"Cyclic reference detected: {cycle_path_str}"
             if current_node:
                 current_node.error = error_msg
             diagnostics_manager.add_event(
                 "fragment_cycle_detected",
                 slug=__slug,
-                cycle_path=fragment_stack + [__slug],
+                cycle_path=cycle_path,
             )
-            raise ValueError(error_msg)
+            raise CyclicReferenceError(start_file=__slug, cycle_path=cycle_path)
 
         try:
             # Load the referenced fragment
@@ -417,8 +420,9 @@ class PrompyExtension(Extension):
                     vars_context[arg_name] = default_value
                 elif arg_name not in vars_context and default_value is None:
                     # Required argument is missing
-                    raise ValueError(
-                        f"Missing required argument '{arg_name}' for fragment @{fragment_file.slug}"
+                    raise MissingArgumentError(
+                        argument_name=arg_name,
+                        fragment_slug=fragment_file.slug,
                     )
 
         return vars_context

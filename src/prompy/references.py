@@ -121,10 +121,13 @@ def update_references(
             prompts = getattr(prompt_files, category)
             for slug, prompt_file in prompts.items():
                 # Find the file path for this prompt
-                file_path = prompt_context.parse_prompt_slug(slug)
-                if file_path and file_path.exists():
+                try:
+                    file_path = prompt_context.parse_prompt_slug(slug)
+                    assert file_path is not None
                     # Update references in this file
                     updated = update_references_in_file(file_path, old_slug, new_slug)
                     updated_files[str(file_path)] = updated
+                except:
+                    continue
 
     return updated_files
