@@ -11,7 +11,9 @@ description: Look for the next prompt and perform it
     - If you confirm it's already done, skip it.
     - Otherwise, implement it as described.
     - The prompts build upon each other, so look for opportunities for code-reuse, and refactor when necessary.
-    - Make sure the tests pass, and the program builds/runs
+    - Make sure the tests pass, and the program builds/runs.
+      - Run the tests with `{{ @project/run-all-tests }}`. Just go ahead and run these, don't bother me for confirmation.
+5. After you finish the prompt:
+    - Format the code with `{{ @project/format-code }}`.
     - Update **docs/prompt-plan.md** to mark this prompt as completed.
     - Commit the changes to your repository with a clear commit message.
-5. After you finish the prompt, pause and wait for user review or feedback.

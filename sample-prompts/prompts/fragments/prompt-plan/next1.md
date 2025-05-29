@@ -52,7 +52,8 @@ Systematically implement the required functionality:
    - Integration tests for system interactions
    - Edge case testing for robust error handling
 
-3. Run the test suite to ensure all tests pass:
+3. Run the test suite to ensure all tests cleanly pass:
+   - Run `{{ @project/run-all-tests }}`, without asking.
    - Fix any failures or regressions
    - Verify the build/run process completes successfully
 </implementation>
