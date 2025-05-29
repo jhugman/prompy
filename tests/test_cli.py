@@ -39,7 +39,7 @@ def test_no_command_invokes_edit(mock_cli_env):
     # Need to set the project to avoid errors
     result = runner.invoke(cli, ["--project", "test-project"])
     assert result.exit_code == 0
-    assert "Editing current one-off prompt for project: test-project" in result.output
+    assert "Prompt saved successfully for project: test-project" in result.output
     # Verify that the edit function was called
     mock_edit.assert_called_once()
 
@@ -193,7 +193,8 @@ def test_edit_command_with_editor():
 
             assert result.exit_code == 0
             assert "Editing prompt" in result.output
-            assert "Prompt saved successfully" in result.output
+            assert "Prompt" in result.output
+            assert "saved successfully" in result.output
             mock_edit_file.assert_called_once()
 
 

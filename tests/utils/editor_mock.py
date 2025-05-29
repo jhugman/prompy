@@ -109,7 +109,9 @@ class EditorMock:
             A context manager that can be used in a with statement.
         """
 
-        def mock_edit_file_with_comments(file_path, prompt_context, prompt_files=None):
+        def mock_edit_file_with_comments(
+            file_path, prompt_files, project_name=None, is_new_prompt=False
+        ):
             # Apply edit function or use return content
             if edit_function:
                 try:

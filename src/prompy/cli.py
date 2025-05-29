@@ -177,11 +177,19 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
         # Load prompt files for help comments
         prompt_files = prompt_context.load_all()
 
-        # Launch the editor
-        success = edit_file_with_comments(str(cache_file_path), prompt_files)
+        # Import here to avoid circular imports
+        from prompy.editor import display_editor_success
+
+        # Launch the editor with enhanced features
+        success = edit_file_with_comments(
+            str(cache_file_path),
+            prompt_files,
+            project_name=project_name,
+            is_new_prompt=True,
+        )
 
         if success:
-            click.echo(f"New prompt cached for {project_name}")
+            display_editor_success(f"New prompt cached for {project_name}")
         else:
             click.echo("Failed to save prompt.", err=True)
             return
@@ -251,16 +259,33 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
             if not file_path.exists():
                 save_to_cache(cache_dir, project_name, "")
 
+            # Show initial editing message
             click.echo(f"Editing current one-off prompt for project: {project_name}")
+
+        # Import here to avoid circular imports
+        from prompy.editor import display_editor_success
 
         # Load prompt files for help comments
         prompt_files = prompt_context.load_all()
 
-        # Launch the editor
-        success = edit_file_with_comments(str(file_path), prompt_files)
+        # Determine if this is editing a new prompt (check if we're editing current one-off)
+        is_new_prompt = not prompt_slug
+
+        # Launch the editor with enhanced features
+        success = edit_file_with_comments(
+            str(file_path),
+            prompt_files,
+            project_name=project_name if not prompt_slug else None,
+            is_new_prompt=is_new_prompt,
+        )
 
         if success:
-            click.echo(f"Prompt saved successfully.")
+            if prompt_slug:
+                display_editor_success(f"Prompt '{prompt_slug}' saved successfully")
+            else:
+                display_editor_success(
+                    f"Prompt saved successfully for project: {project_name}"
+                )
         else:
             raise PrompyError(
                 "Failed to save prompt",
@@ -874,7 +899,16 @@ def detections(ctx: click.Context, validate: bool) -> None:
             projects={},
             fragments={},
         )
-        success = edit_file_with_comments(str(detections_file), empty_prompt_files)
+
+        # Import here to avoid circular imports
+        from prompy.editor import display_editor_success
+
+        success = edit_file_with_comments(
+            str(detections_file),
+            empty_prompt_files,
+            project_name=None,
+            is_new_prompt=False,
+        )
         if not success:
             raise PrompyError(
                 "Failed to edit detections file",
@@ -886,7 +920,7 @@ def detections(ctx: click.Context, validate: bool) -> None:
         try:
             with open(detections_file, "r", encoding="utf-8") as f:
                 yaml.safe_load(f)
-                click.echo("✅ Detections configuration updated and validated.")
+                display_editor_success("Detections configuration updated and validated")
         except yaml.YAMLError as e:
             raise PrompyError(
                 "Invalid YAML in edited detections file",

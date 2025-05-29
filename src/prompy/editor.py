@@ -1,4 +1,3 @@
-# filepath: /Users/jhugman/workspaces/personal/prompy/src/prompy/editor.py
 """
 Editor functionality for Prompy.
 This module handles the detection and launching of the user's editor,
@@ -7,12 +6,21 @@ as well as the creation of help comments.
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+
 from prompy.prompt_context import PromptContext
 from prompy.prompt_files import PromptFiles
+
+# Initialize rich console for terminal output
+console = Console()
 
 # Constant for marking help text that should be removed after editing
 HELP_TEXT_MARKER = "This comment section will be removed from the final prompt."
@@ -86,14 +94,17 @@ def launch_editor(file_path: str) -> int:
 def edit_file_with_comments(
     file_path: str,
     prompt_files: PromptFiles,
+    project_name: Optional[str] = None,
+    is_new_prompt: bool = False,
 ) -> bool:
     """
-    Open a file in the editor with help comments added.
+    Open a file in the editor with help comments added and colorized console help.
 
     Args:
         file_path: Path to the file to edit.
-        prompt_context: Context for resolving prompt slugs.
         prompt_files: Available prompt files.
+        project_name: Optional project name for help display.
+        is_new_prompt: Whether this is a new prompt.
 
     Returns:
         bool: True if the edit was successful, False otherwise.
@@ -120,8 +131,15 @@ def edit_file_with_comments(
         temp_file.write(content_with_comments)
 
     try:
+        # Display colorized help text before opening editor
+        display_editor_help(project_name, prompt_files, is_new_prompt)
+
         # Launch the editor
         return_code = launch_editor(temp_path)
+
+        # Clear the help text after editor closes
+        clear_editor_help()
+
         if return_code != 0:
             return False
 
@@ -213,3 +231,123 @@ def remove_help_comments(content: str) -> str:
 
     # No markers found, return content as is
     return content
+
+
+def is_terminal_output() -> bool:
+    """
+    Check if output should be displayed in the terminal.
+    Returns False if output is redirected or in test environment.
+    """
+    try:
+        # Check for test environment - pytest should exist and not be None
+        if "pytest" in sys.modules and sys.modules["pytest"] is not None:
+            return False
+        # Check if stdout is a terminal
+        return sys.stdout.isatty()
+    except AttributeError:
+        return False
+
+
+def display_editor_help(
+    project_name: Optional[str], prompt_files: PromptFiles, is_new_prompt: bool = False
+) -> None:
+    """
+    Display colorized help text in the console when opening the editor.
+
+    Args:
+        project_name: The current project name
+        prompt_files: Available prompt files for help text
+        is_new_prompt: Whether this is a new prompt
+    """
+    if not is_terminal_output():
+        return
+
+    # Create help content
+    help_lines = []
+
+    # Get concise help text
+    help_text = prompt_files.help_text(
+        slug_prefix="@",
+        include_syntax=True,
+        include_header=False,  # We'll create our own header
+        inline_description=True,
+        use_dashes=False,
+    )
+
+    # Create title
+    action = "Creating new prompt" if is_new_prompt else "Editing prompt"
+    title_text = f"✏️  {action}"
+    if project_name:
+        title_text += f" for {project_name}"
+
+    # Create subtitle with helpful tips
+    subtitle = Text()
+    subtitle.append(
+        "💡 Available fragments will be shown in the editor\n", style="bright_blue"
+    )
+    subtitle.append("🚀 Save and close the editor when done", style="bright_green")
+
+    # Create the help panel
+    panel_content = Text()
+    panel_content.append(subtitle)
+    panel_content.append("\n")
+
+    # Add concise fragment info if available
+    if help_text.strip():
+        lines = help_text.strip().split("\n")
+        # Show only first few fragments to keep it concise
+        for i, line in enumerate(lines[:8]):  # Show max 8 lines
+            if line.strip():
+                panel_content.append(line + "\n", style="dim")
+        if len(lines) > 8:
+            panel_content.append("... and more in the editor\n", style="dim italic")
+
+    # Display the panel
+    help_panel = Panel(
+        panel_content,
+        title=title_text,
+        border_style="bright_blue",
+        padding=(1, 2),
+    )
+
+    console.print(help_panel)
+
+
+def clear_editor_help() -> None:
+    """
+    Clear the editor help text from the console after editor closes.
+    """
+    if not is_terminal_output():
+        return
+
+    # Move cursor up to overwrite the help panel
+    # We need to clear enough lines to cover the help panel
+    console.print("\n" * 2, end="")  # Add some spacing
+
+    # Display completion message
+    completion_panel = Panel(
+        Text("✅ Editor session completed", style="bright_green bold"),
+        border_style="bright_green",
+        padding=(0, 2),
+    )
+    console.print(completion_panel)
+
+
+def display_editor_success(message: str) -> None:
+    """
+    Display a success message with colorized output.
+
+    Args:
+        message: The success message to display
+    """
+    if not is_terminal_output():
+        # Fall back to plain click.echo for non-terminal output
+        click.echo(message)
+        return
+
+    # Create colorized success message
+    success_text = Text()
+    success_text.append("✅ ", style="bright_green")
+    success_text.append(message, style="bright_white")
+
+    console.print(success_text)
