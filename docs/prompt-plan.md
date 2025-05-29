@@ -594,19 +594,22 @@ Tasks:
 - [x] PROMPT 15 COMPLETE
 ```
 
-### PROMPT 16: Advanced User Experience Improvements
+### PROMPT 16: Improvements to the output experience
 
-1. Enhance editor experience:
-   - Create better formatting for the help text
-   - Show front matter for `new` and `new SLUG` commands
+```
+You will be implementing advanced user experience improvements for the Prompy tool. This builds on previous work in cli.py, editor.py, and output.py.
 
-2. Improve output formatting:
-   - Add colorized output for terminal display
-   - Create better formatting for `list` command
+1. Improve output formatting:
+   - Add colorized output for the `out` command.
+   - Detect when being `out` output is redirected, and just output text.
    - Create beautified clipboard output
 
+2. Improve list formatting:
+   - Create better formatting for `list` command: make it concise and pretty.
+   - Create a `--json` option for `list`, so machines can read the list.
+
 3. Write comprehensive tests for:
-   - Enhanced editor features
+   - List formatting options
    - Output formatting options
 
 Tasks:
@@ -617,7 +620,26 @@ Tasks:
 - [ ] PROMPT 16 COMPLETE
 ```
 
-### PROMPT 17: Distribution and Installation Enhancements
+### PROMPT 17: Improvements to the Editor experience
+
+```
+You will be implementing advanced user experience improvements for the Prompy tool. This builds on previous work in cli.py, editor.py, and output.py.
+
+1. Enhance editor experience:
+   - Add colorized editor help text in the console: make it concise and pretty.
+   - The console help text should be cleared once the editor is closed.
+
+2. Write comprehensive tests for:
+   - Enhanced editor features
+
+Tasks:
+- [ ] Enhance editor comments for better usability
+- [ ] Implement colorized terminal output
+- [ ] Write tests for formatting features
+- [ ] PROMPT 17 COMPLETE
+```
+
+### PROMPT 18: Distribution and Installation Enhancements
 
 ```
 You will be implementing distribution and installation enhancements for the Prompy tool. This builds on previous work in setup.py and the installation scripts.
