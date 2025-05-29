@@ -18,32 +18,17 @@ from prompy.cache import (
     clear_cache,
     get_cache_file_path,
     load_from_cache,
-    read_from_stdin,
     save_to_cache,
 )
-from prompy.cli_completions import (
-    complete_prompt_slug,
-)
+from prompy.cli_completions import complete_prompt_slug
 from prompy.config import (
     detect_language,
     ensure_config_dirs,
     find_project_dir,
 )
-from prompy.context import create_prompt_context, from_click_context
+from prompy.context import from_click_context
 from prompy.diagnostics import diagnostics_manager, enable_diagnostics
-from prompy.editor import (
-    edit_file_with_comments,
-    find_editor,
-    launch_editor,
-)
 from prompy.error_handling import PrompyError, handle_error
-from prompy.output import (
-    output_content,
-    output_to_clipboard,
-    output_to_file,
-    output_to_stdout,
-)
-from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
 from prompy.prompt_files import PromptFiles
 from prompy.references import update_references
@@ -128,6 +113,7 @@ def cli(
     ctx.obj["cache_dir"] = cache_dir
     ctx.obj["debug"] = debug
     ctx.obj["global_only"] = global_only
+    ctx.obj["detactions_file"] = detections_file
 
     if ctx.invoked_subcommand is None:
         # Default behavior is to act like the 'edit' command
@@ -144,6 +130,8 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
 
     If PROMPT_SLUG is provided, use it as a template. Otherwise, start with an empty prompt.
     """
+    from prompy.editor import edit_file_with_comments
+
     try:
         # Get project info
         project_name = ctx.obj.get("project")
@@ -210,6 +198,8 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
     If PROMPT_SLUG is provided, edit that prompt.
     Otherwise, edit the current one-off prompt.
     """
+    from prompy.editor import edit_file_with_comments
+
     try:
         prompt_context = from_click_context(ctx)
         project_name = ctx.obj.get("project")

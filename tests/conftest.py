@@ -22,7 +22,7 @@ from utils.editor_mock import EditorMock
 def mock_cli_env():
     """Fixture to set up all necessary mocks for CLI tests."""
     with (
-        patch("prompy.cli.edit_file_with_comments", return_value=True) as mock_edit,
+        patch("prompy.editor.edit_file_with_comments", return_value=True) as mock_edit,
         patch(
             "prompy.cli.ensure_config_dirs",
             return_value=(
@@ -69,6 +69,11 @@ def mock_editor_autouse(request, monkeypatch):
     def mock_launch_editor(file_path):
         """Mock implementation of launch_editor."""
         print(f"\nMOCK EDITOR: Using autouse mock for {file_path}")
+
+        # Validate file_path
+        if not file_path or not isinstance(file_path, (str, os.PathLike)):
+            raise ValueError(f"Invalid file path: {file_path}")
+
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
