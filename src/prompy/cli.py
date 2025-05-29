@@ -163,7 +163,11 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
             # If a template prompt is specified, use it
             if prompt_slug:
                 prompt_file = prompt_context.load_slug(prompt_slug)
-                save_to_cache(cache_dir, project_name, prompt_file.markdown_template)
+                # Preserve both frontmatter and template content
+                template_content = prompt_file.markdown_template
+                if prompt_file.frontmatter:
+                    template_content = f"---\n{prompt_file.frontmatter}\n---\n{template_content}"
+                save_to_cache(cache_dir, project_name, template_content)
             else:
                 # Start with empty file
                 save_to_cache(cache_dir, project_name, "")
