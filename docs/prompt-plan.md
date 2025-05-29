@@ -583,15 +583,15 @@ You will be implementing enhanced error reporting and diagnostics for the Prompy
    - Debug logging content and structure
 
 Tasks:
-- [ ] Enhance error messages with more context
-- [ ] Add template snippet to syntax error reports
-- [ ] Implement suggestion system for common errors
-- [ ] Create diagnostic mode flag and functionality
-- [ ] Add structured logging for debugging
-- [ ] Implement fragment resolution visualization
-- [ ] Write tests for enhanced error reporting
-- [ ] Write tests for diagnostic mode
-- [ ] PROMPT 15 COMPLETE
+- [x] Enhance error messages with more context
+- [x] Add template snippet to syntax error reports
+- [x] Implement suggestion system for common errors
+- [x] Create diagnostic mode flag and functionality
+- [x] Add structured logging for debugging
+- [x] Implement fragment resolution visualization
+- [x] Write tests for enhanced error reporting
+- [x] Write tests for diagnostic mode
+- [x] PROMPT 15 COMPLETE
 ```
 
 ### PROMPT 16: Advanced User Experience Improvements
