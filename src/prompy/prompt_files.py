@@ -1,16 +1,25 @@
 """
-Module for handling collections of prompt files.
+Module for managing collections of prompt files.
 """
 
+import logging
 from typing import Dict, List, Optional
 
+import click
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
 from prompy.prompt_file import PromptFile
+
+logger = logging.getLogger(__name__)
+console = Console()
 
 
 class PromptFiles:
     """
-    Collection of prompt files for providing help and available slugs.
-    Organizes prompts into categories for easier access and display.
+    A collection of prompt files with access methods for help text and prompts.
     """
 
     def __init__(
@@ -48,6 +57,27 @@ class PromptFiles:
         else:
             return self._fragment_prompts.get(slug)
 
+    def get_prompt_file(self, slug: str) -> Optional[PromptFile]:
+        """
+        Get a prompt file by its slug.
+
+        Args:
+            slug: The slug of the prompt file.
+
+        Returns:
+            PromptFile if found, None otherwise.
+        """
+        # Check project prompts first
+        if slug in self._project_prompts:
+            return self._project_prompts[slug]
+        # Then language prompts
+        if slug in self._language_prompts:
+            return self._language_prompts[slug]
+        # Finally fragment prompts
+        if slug in self._fragment_prompts:
+            return self._fragment_prompts[slug]
+        return None
+
     def available_slugs(self) -> List[str]:
         """
         Get a list of available slugs.
@@ -72,28 +102,24 @@ class PromptFiles:
         category_filter: Optional[str] = None,
     ) -> str:
         """
-        Generate help text for available prompts and fragments.
+        Generate formatted help text for available prompts.
 
         Args:
-            slug_prefix: Prefix to add before each slug (e.g., "@" for editor comments)
-            include_syntax: Whether to include syntax help at the end
-            include_header: Whether to include the header section at the top
-            use_dashes: Whether to include divider dashes after the header
-            inline_description: Whether to put descriptions on the same line as slugs (e.g., "slug - description")
-                              rather than indented on the next line
-            category_filter: Optional category name to filter prompts by
+            slug_prefix: Optional prefix to add to slug names
+            include_syntax: Whether to include syntax help
+            include_header: Whether to include syntax help
+            use_dashes: Whether to use dashed lines for sections
+            inline_description: Whether to include descriptions inline
+            category_filter: Optional category to filter prompts by
 
         Returns:
             str: Formatted help text
         """
-        help_text = ""
+        # Create string buffer for rich output
+        from io import StringIO
 
-        # Add header if requested
-        if include_header:
-            help_text += "PROMPY AVAILABLE FRAGMENTS:\n"
-            if use_dashes:
-                help_text += "--------------------------\n"
-            help_text += "\n"
+        output = StringIO()
+        temp_console = Console(file=output, force_terminal=True)
 
         # Group files by category for task files
         task_files = []
@@ -101,6 +127,13 @@ class PromptFiles:
 
         # Identify task files from fragment prompts
         for slug, prompt_file in self._fragment_prompts.items():
+            # Skip if category filter is active and doesn't match
+            if category_filter and (
+                not prompt_file.categories
+                or category_filter not in prompt_file.categories
+            ):
+                continue
+
             if not prompt_file.is_fragment():
                 task_files.append((slug, prompt_file))
             else:
@@ -109,11 +142,8 @@ class PromptFiles:
         # Define sections to display
         sections = [
             {
-                "title": (
-                    f"PROJECT FRAGMENTS (project: {self._project_name})"
-                    if self._project_name
-                    else "PROJECT FRAGMENTS"
-                ),
+                "title": f"Project Fragments {f'({self._project_name})' if self._project_name else ''}",
+                "style": "blue",
                 "items": (
                     sorted(self._project_prompts.items())
                     if self._project_prompts
@@ -121,85 +151,125 @@ class PromptFiles:
                 ),
             },
             {
-                "title": (
-                    f"LANGUAGE FRAGMENTS (language: {self._language_name})"
-                    if self._language_name
-                    else "LANGUAGE FRAGMENTS"
-                ),
+                "title": f"Language Fragments {f'({self._language_name})' if self._language_name else ''}",
+                "style": "blue",
                 "items": (
                     sorted(self._language_prompts.items())
                     if self._language_prompts
                     else []
                 ),
             },
-            {"title": "TASKS", "items": sorted(task_files) if task_files else []},
-            {"title": "FRAGMENTS", "items": sorted(other_files) if other_files else []},
+            {
+                "title": "Tasks",
+                "style": "blue",
+                "items": sorted(task_files) if task_files else [],
+            },
+            {
+                "title": "Fragments",
+                "style": "blue",
+                "items": sorted(other_files) if other_files else [],
+            },
         ]
+
+        if include_header:
+            header = Text("PROMPY AVAILABLE FRAGMENTS", style="bold blue")
+            temp_console.print(header)
+            temp_console.print()
 
         # Add each section
         for section in sections:
-            section_items = []
-
-            # Apply category filter if specified
-            if category_filter:
-                section_items = []
-                for slug, prompt_file in section["items"]:
-                    # Include prompt if it has matching category or if no categories are defined
-                    if prompt_file.categories and category_filter.lower() in [
-                        cat.lower() for cat in prompt_file.categories
-                    ]:
-                        section_items.append((slug, prompt_file))
-            else:
-                section_items = section["items"]
-
-            if not section_items:
+            items = section["items"]
+            if not items:
                 continue
 
-            help_text += f"{section['title']}:\n"
+            # Filter items by category if specified
+            if category_filter:
+                items = [
+                    (slug, pf)
+                    for slug, pf in items
+                    if pf.categories and category_filter in pf.categories
+                ]
 
-            for slug, prompt_file in section_items:
+            if not items:  # Skip empty sections after filtering
+                continue
+
+            # Create panel for section
+            title = Text(section["title"].upper(), style=f"bold {section['style']}")
+
+            # Create table for prompts
+            table = Table(
+                show_header=False,
+                show_lines=False,
+                box=None,
+                padding=(0, 2),
+                collapse_padding=True,
+            )
+
+            # Columns depend on display mode
+            if inline_description:
+                table.add_column("Prompt", style="bright_white")
+                table.add_column("Description", style="bright_black")
+                table.add_column("Categories", style="dim")
+            else:
+                table.add_column("Prompt", style="bright_white")
+                if not inline_description:
+                    table.add_column("Description", style="bright_black")
+
+            # Add items to table
+            for slug, prompt_file in items:
                 args_str = self._format_arguments(prompt_file.arguments)
+                prompt_text = f"{slug_prefix}{slug}{args_str}"
 
-                # Format the output
-                if prompt_file.description and inline_description:
-                    # For detailed output - include description
-                    help_text += (
-                        f"  {slug_prefix}{slug}{args_str} — {prompt_file.description}\n"
+                if inline_description:
+                    categories = (
+                        ", ".join(prompt_file.categories)
+                        if prompt_file.categories
+                        else ""
                     )
-
-                    # Add categories if available and in detailed mode
-                    if prompt_file.categories:
-                        categories_str = ", ".join(prompt_file.categories)
-                        help_text += f"    Categories: {categories_str}\n"
+                    table.add_row(
+                        prompt_text,
+                        prompt_file.description or "",
+                        categories,
+                    )
                 else:
-                    # For simple output - just show the slug
-                    help_text += f"  {slug_prefix}{slug}{args_str}\n"
                     if prompt_file.description:
-                        help_text += f"    {prompt_file.description}\n"
+                        table.add_row(prompt_text, prompt_file.description)
+                    else:
+                        table.add_row(prompt_text)
 
-                    # Add categories if available and not in inline description mode
-                    if prompt_file.categories and not inline_description:
-                        categories_str = ", ".join(prompt_file.categories)
-                        help_text += f"    Categories: {categories_str}\n"
-
-            help_text += "\n"
+            # Create and print panel containing the table
+            panel = Panel(table, title=title, style="blue")
+            temp_console.print(panel)
+            temp_console.print()
 
         # Add syntax help if requested
         if include_syntax:
-            help_text += "SYNTAX:\n"
-            help_text += "  @fragment-name(arg1, key=value)\n"
-            help_text += "  @path/to/fragment\n"
-            help_text += "  @project/fragment\n"
-            help_text += "  @language/fragment\n\n"
+            syntax_table = Table(
+                show_header=False,
+                show_lines=False,
+                box=None,
+                padding=(0, 2),
+            )
+            syntax_table.add_row("@fragment-name(arg1, key=value)", style="yellow")
+            syntax_table.add_row("@path/to/fragment", style="yellow")
+            syntax_table.add_row("@project/fragment", style="yellow")
+            syntax_table.add_row("@language/fragment", style="yellow")
 
-        return help_text
+            syntax_panel = Panel(
+                syntax_table,
+                title=Text("SYNTAX", style="bold blue"),
+                style="blue",
+            )
+            temp_console.print(syntax_panel)
+
+        return output.getvalue()
 
     def _format_arguments(self, args: Optional[Dict[str, Optional[str]]]) -> str:
         """
         Format arguments for display in help text.
 
         Args:
-            args (Optional[Dict[str, Optional[str]]]): Argument names and default values
+            args: Argument names and default values
 
         Returns:
             str: Formatted arguments string

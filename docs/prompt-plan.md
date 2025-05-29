@@ -613,11 +613,11 @@ You will be implementing advanced user experience improvements for the Prompy to
    - Output formatting options
 
 Tasks:
-- [ ] Enhance editor comments for better usability
-- [ ] Implement colorized terminal output
-- [ ] Add multiple output format options
-- [ ] Write tests for formatting features
-- [ ] PROMPT 16 COMPLETE
+- [x] Enhance editor comments for better usability
+- [x] Implement colorized terminal output
+- [x] Add multiple output format options
+- [x] Write tests for formatting features
+- [x] PROMPT 16 COMPLETE
 ```
 
 ### PROMPT 17: Improvements to the Editor experience

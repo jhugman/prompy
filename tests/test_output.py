@@ -20,12 +20,17 @@ def test_output_to_stdout():
     """Test outputting content to stdout."""
     test_content = "Test content to stdout"
 
-    with patch("sys.stdout") as mock_stdout:
+    # Mock both isatty and stdout
+    with (
+        patch("sys.stdout.isatty", return_value=False),
+        patch("sys.stdout.write") as mock_write,
+        patch("sys.stdout.flush") as mock_flush,
+    ):
         result = output_to_stdout(test_content)
 
         assert result is True
-        mock_stdout.write.assert_any_call(test_content)
-        mock_stdout.flush.assert_called_once()
+        mock_write.assert_any_call(test_content)
+        mock_flush.assert_called_once()
 
 
 def test_output_to_stdout_with_error():

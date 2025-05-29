@@ -17,3 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Caching of in-progress prompts
 - Shell completion support for bash, zsh, and fish
 - Documentation including README, user guide, and man pages
+- Added `--json` flag to `list` command as a shorthand for `--format json`
+- Added support for filtering null values in JSON output
+- Maintained backward compatibility with existing `--format` options (simple, detailed, json)
+- Enhanced output styling with more subtle Markdown colors
+- Updated code theme to 'one-dark' for better readability
+- Improved emoji usage for better visual context
+- Made list formatting more concise and visually appealing
+- Enhanced border and text styling for better visual hierarchy

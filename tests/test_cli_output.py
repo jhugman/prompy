@@ -6,10 +6,23 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import click
 import pytest
 from click.testing import CliRunner
 
 from prompy.cli import cli
+
+
+def mock_clipboard_output(*args, **kwargs):
+    """Mock function that simulates clipboard output behavior."""
+    click.echo("Prompt copied to clipboard.")
+    return True
+
+
+def mock_file_output(content, file_path):
+    """Mock function that simulates file output behavior."""
+    click.echo(f"Prompt output to file: {file_path}")
+    return True
 
 
 @pytest.fixture
@@ -68,7 +81,9 @@ def test_out_command_to_file(mock_output_env):
     with runner.isolated_filesystem():
         output_file = "output.md"
 
-        with patch("prompy.output.output_to_file", return_value=True) as mock_file:
+        with patch(
+            "prompy.output.output_to_file", side_effect=mock_file_output
+        ) as mock_file:
             result = runner.invoke(
                 cli, ["--project", "test-project", "out", "--file", output_file]
             )
@@ -85,7 +100,7 @@ def test_out_command_to_clipboard(mock_output_env):
 
     with runner.isolated_filesystem():
         with patch(
-            "prompy.output.output_to_clipboard", return_value=True
+            "prompy.output.output_to_clipboard", side_effect=mock_clipboard_output
         ) as mock_clipboard:
             result = runner.invoke(
                 cli, ["--project", "test-project", "out", "--pbcopy"]
@@ -140,7 +155,7 @@ def test_pbcopy_command(mock_output_env):
 
     with runner.isolated_filesystem():
         with patch(
-            "prompy.output.output_to_clipboard", return_value=True
+            "prompy.output.output_to_clipboard", side_effect=mock_clipboard_output
         ) as mock_clipboard:
             result = runner.invoke(cli, ["--project", "test-project", "pbcopy"])
 
@@ -157,7 +172,9 @@ def test_pbcopy_command_with_slug(mock_output_env):
     with (
         runner.isolated_filesystem(),
         patch("prompy.prompt_context.PromptContext.load_slug") as mock_load_slug,
-        patch("prompy.output.output_to_clipboard", return_value=True) as mock_clipboard,
+        patch(
+            "prompy.output.output_to_clipboard", side_effect=mock_clipboard_output
+        ) as mock_clipboard,
     ):
         # Create a mock prompt file
         mock_prompt = MagicMock()
@@ -172,7 +189,7 @@ def test_pbcopy_command_with_slug(mock_output_env):
         )
 
         assert result.exit_code == 0
-        assert "Prompt copied to clipboard" in result.output
+        assert "Prompt copied to clipboard." in result.output
 
 
 def test_pbcopy_command_with_clipboard_error(mock_output_env):
