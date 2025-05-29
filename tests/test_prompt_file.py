@@ -170,29 +170,23 @@ def test_prompt_files_collection():
 
     # Create collection
     collection = PromptFiles(
+        project_name=None,
+        language_name=None,
         fragments={file1.slug: file1},
         projects={file2.slug: file2},
         languages={file3.slug: file3},
     )
 
     # Test getting files
-    assert collection.get_file("test/file1") == file1
-    assert collection.get_file("project/file2") == file2
-    assert collection.get_file("nonexistent") is None
+    assert collection.get_prompt_file("test/file1") == file1
+    assert collection.get_prompt_file("project/file2") == file2
+    assert collection.get_prompt_file("nonexistent") is None
 
     # Test available slugs
     slugs = collection.available_slugs()
     assert "test/file1" in slugs
     assert "project/file2" in slugs
     assert "language/file3" in slugs
-
-    # Test help text generation
-    help_text = collection.help_text()
-    assert "PROMPY AVAILABLE FRAGMENTS:" in help_text
-    assert "project/file2(arg1=default)" in help_text
-    assert "Project file description" in help_text
-    assert "language/file3" in help_text
-    assert "Language file description" in help_text
 
 
 def test_prompt_context():

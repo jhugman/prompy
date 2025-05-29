@@ -166,7 +166,9 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
                 # Preserve both frontmatter and template content
                 template_content = prompt_file.markdown_template
                 if prompt_file.frontmatter:
-                    template_content = f"---\n{prompt_file.frontmatter}\n---\n{template_content}"
+                    template_content = (
+                        f"---\n{prompt_file.frontmatter}\n---\n{template_content}"
+                    )
                 save_to_cache(cache_dir, project_name, template_content)
             else:
                 # Start with empty file
@@ -333,9 +335,7 @@ def out(
         if output_to := file:
             from prompy.output import output_to_file
 
-            if output_to_file(resolved_content, file):
-                click.echo(f"Prompt output to file: {output_to}")
-            else:
+            if not output_to_file(resolved_content, file):
                 raise PrompyError(
                     "Failed to write to file",
                     file_path=output_to,
@@ -344,9 +344,7 @@ def out(
         if pbcopy:
             from prompy.output import output_to_clipboard
 
-            if output_to_clipboard(resolved_content):
-                click.echo("Prompt copied to clipboard.")
-            else:
+            if not output_to_clipboard(resolved_content):
                 raise PrompyError(
                     "Failed to copy to clipboard",
                     suggestion="Make sure your system clipboard is accessible",
@@ -469,10 +467,14 @@ def pbcopy(ctx: click.Context, prompt_slug: Optional[str]) -> None:
 @click.option("--category", help="Filter by category.")
 @click.option(
     "--format",
-    "format_type",
-    type=click.Choice(["simple", "detailed"]),
+    type=click.Choice(["simple", "detailed", "json"]),
     default="detailed",
-    help="Output format: simple (just slugs) or detailed (with descriptions).",
+    help="Output format: simple (just slugs), detailed (with descriptions), or json (machine-readable).",
+)
+@click.option(
+    "--json",
+    is_flag=True,
+    help="Output in JSON format for machine readability. Shorthand for --format json.",
 )
 @click.pass_context
 def list(
@@ -480,23 +482,21 @@ def list(
     project: Optional[str],
     language: Optional[str],
     category: Optional[str],
-    format_type: str,
+    format: str,
+    json: bool,
 ) -> None:
-    """
-    List available prompts.
+    """List available prompt fragments."""
+    import json as json_lib
 
-    Filter by project, language, and category if specified.
-    Use --all to show prompts from all projects and languages.
-    """
-    # Use context values or override with options
-    project_name = project or ctx.obj.get("project")
-    detected_language = language or ctx.obj.get("language")
-    global_only = ctx.obj.get("is_global")
-
-    prompt_context = from_click_context(ctx)
+    from prompy.context import from_click_context
 
     try:
-        # Load all available prompt files
+        # Get prompt context and load all prompts
+        prompt_context = from_click_context(ctx)
+        global_only = ctx.obj.get("global_only", False)
+        project_name = ctx.obj.get("project")
+        detected_language = ctx.obj.get("language")
+
         prompt_files = prompt_context.load_all(global_only=global_only)
 
         # Count total prompts before filtering
@@ -504,21 +504,70 @@ def list(
 
         # Filter by category if specified
         if category:
-            # We'll need to apply the filter inside the help_text method
             category_filter = category
-            click.echo(f"Filtering prompts by category: {category}")
+            if format != "json" and not json:
+                click.echo(f"Filtering prompts by category: {category}")
         else:
             category_filter = None
 
-        # Get the formatted help text using the enhanced help_text method with inline descriptions
+        # If --json flag is used, override the format
+        if json:
+            format = "json"
+
+        if format == "json":
+            # Create a JSON-friendly data structure, excluding null values
+            json_data = {
+                "prompts": [],
+                "metadata": {
+                    k: v
+                    for k, v in {
+                        "total_count": total_count,
+                        "project": project_name,
+                        "language": detected_language,
+                        "category": category,
+                    }.items()
+                    if v is not None
+                },
+            }
+
+            # Add all prompts to the data structure
+            for slug in prompt_files.available_slugs():
+                prompt_file = prompt_files.get_prompt_file(slug)
+                if not prompt_file:
+                    continue
+
+                if category and (
+                    not prompt_file.categories or category not in prompt_file.categories
+                ):
+                    continue
+
+                # Build prompt data excluding null values
+                prompt_data = {
+                    k: v
+                    for k, v in {
+                        "slug": slug,
+                        "description": prompt_file.description or None,
+                        "categories": prompt_file.categories or None,
+                        "arguments": prompt_file.arguments or None,
+                    }.items()
+                    if v is not None
+                }
+
+                json_data["prompts"].append(prompt_data)
+
+            # Output JSON with nice formatting, skipping null values
+            click.echo(json_lib.dumps(json_data, indent=2))
+            return
+
+        # Get the formatted help text using the enhanced help_text method
         help_text = prompt_files.help_text(
             slug_prefix="",  # No @ prefix for CLI output
             include_syntax=False,  # Skip syntax help in CLI output
             include_header=False,  # We'll add our own header
             use_dashes=False,
             inline_description=(
-                format_type == "detailed"
-            ),  # Only include descriptions for detailed format
+                format == "detailed"
+            ),  # Only include descriptions in detailed format
             category_filter=category_filter,  # Apply category filter if specified
         )
 
@@ -532,7 +581,10 @@ def list(
             filters_applied.append(f"category: {category}")
 
         filter_text = f" ({', '.join(filters_applied)})" if filters_applied else ""
-        click.echo(f"Available prompt fragments{filter_text}:")
+        click.echo(
+            click.style("Available prompt fragments", fg="bright_white", bold=True)
+            + click.style(filter_text, fg="bright_black")
+        )
 
         # Print the formatted output
         if help_text.strip():
@@ -541,28 +593,39 @@ def list(
             click.echo("No prompts found matching the specified criteria.")
 
         # Show filtered count if filtering was applied
-        displayed_count = len(help_text.strip().split("\n")) - sum(
-            1 for line in help_text.split("\n") if line.endswith(":")
+        displayed_count = len(
+            [
+                line
+                for line in help_text.strip().split("\n")
+                if line.strip() and not line.endswith(":")
+            ]
         )
         if category or global_only:
-            click.echo(f"Showing {displayed_count} of {total_count} total prompts.")
+            click.secho(
+                f"\nShowing {displayed_count} of {total_count} total prompts.",
+                fg="bright_black",
+            )
 
         # Add tips for filters if no prompts are found
         if not prompt_files.available_slugs():
             if not project_name and global_only:
-                click.echo("Tip: Use --project to filter by a specific project.")
+                click.echo(
+                    click.style("\nTip:", fg="green")
+                    + " Use --project to filter by a specific project."
+                )
             if not detected_language and global_only:
-                click.echo("Tip: Use --language to filter by a specific language.")
+                click.echo(
+                    click.style("\nTip:", fg="green")
+                    + " Use --language to filter by a specific language."
+                )
             if global_only:
                 click.echo(
-                    "Tip: Use --all to show prompts from all projects and languages."
+                    click.style("\nTip:", fg="green")
+                    + " Use --all to show prompts from all projects and languages."
                 )
 
     except Exception as e:
-        logger.error(f"Error listing prompts: {e}")
-        if ctx.obj.get("debug"):
-            logger.exception(e)
-        click.echo(f"Error: {e}", err=True)
+        handle_error(e, ctx)
         return
 
 
@@ -754,6 +817,8 @@ def rm(ctx: click.Context, prompt_slug: str, force: bool) -> None:
 @click.pass_context
 def detections(ctx: click.Context, validate: bool) -> None:
     """Edit or validate language detection rules."""
+    from prompy.editor import edit_file_with_comments
+
     detections_file = ctx.obj.get("detections_file")
 
     try:
