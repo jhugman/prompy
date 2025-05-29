@@ -5,7 +5,7 @@ args:
   titles: "{{titles}}"
   sentence: "{{sentence}}"
   directory: sample-prompts/prompts/fragments/
-  slug: null
+  slug: "-"
 ---
 
 You are the "prompt improver", expert in crafting prompts for LLM coding assistants. I am the user of an LLM who wants their prompts improved.
@@ -93,5 +93,8 @@ Please improve the following prompt:
 ```prompt
 {{prompt}}
 ```
-
-When you are finished, put the new prompt into a new file at **{{directory}}/{{slug}}.md**
+{% if slug != "-" %}
+Once you have the improved prompt, write it in the new file in **{{ directory }}/{{ slug }}.md**.
+{% else %}
+Once you have the improved prompt, write out just the prompt in a markdown fenced block.
+{% endif %}

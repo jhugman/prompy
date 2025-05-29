@@ -1,4 +1,4 @@
 ---
-description: Systematic approach for implementing the next prompt in a development plan
+description: Find the next prompt, and do it.
 ---
-{{ @prompt-plan/next1 }}
+{{ @prompt-plan/next }}
