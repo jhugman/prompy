@@ -107,7 +107,12 @@ class TestEditorMockUtility:
             with EditorMock.patch_editor(return_content=mock_content):
                 from prompy.editor import edit_file_with_comments
 
-                success = edit_file_with_comments(temp_path, prompt_files)
+                success = edit_file_with_comments(
+                    temp_path,
+                    prompt_files,
+                    project_name="test-project",
+                    is_new_prompt=False,
+                )
 
             # Verify results
             assert success
@@ -174,7 +179,12 @@ class TestAdvancedEditorMocking:
                 # Import inside the patch to ensure we're using the mocked version
                 from prompy.editor import edit_file_with_comments
 
-                success = edit_file_with_comments(temp_path, context.load_all())
+                success = edit_file_with_comments(
+                    temp_path,
+                    context.load_all(),
+                    project_name="test-project",
+                    is_new_prompt=False,
+                )
 
             # Verify results
             assert success

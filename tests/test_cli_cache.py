@@ -117,9 +117,7 @@ def test_edit_command_with_existing_cache(mock_cache_env):
         result = runner.invoke(cli, ["--project", "test-project", "edit"])
 
         assert result.exit_code == 0
-        assert (
-            "Editing current one-off prompt for project: test-project" in result.output
-        )
+        assert "Prompt saved successfully for project: test-project" in result.output
 
         # The file should have been edited with the existing content
         mock_edit.assert_called_once()
@@ -141,9 +139,7 @@ def test_edit_command_creates_cache_if_missing(mock_cache_env):
         result = runner.invoke(cli, ["--project", "test-project", "edit"])
 
         assert result.exit_code == 0
-        assert (
-            "Editing current one-off prompt for project: test-project" in result.output
-        )
+        assert "Prompt saved successfully for project: test-project" in result.output
 
         # The file should have been created and edited
         assert cache_file.exists()
