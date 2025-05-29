@@ -596,38 +596,24 @@ Tasks:
 
 ### PROMPT 16: Advanced User Experience Improvements
 
-```
-You will be implementing advanced user experience improvements for the Prompy tool. This builds on previous work in cli.py, editor.py, and output.py.
-
-1. Create interactive selection mode:
-   - Add interactive prompt selection using a TUI library
-   - Implement search functionality for prompt fragments
-   - Show preview of selected fragments
-
-2. Enhance editor experience:
-   - Add syntax highlighting hints for fragment references
-   - Implement auto-completion suggestions in comment section
+1. Enhance editor experience:
    - Create better formatting for the help text
+   - Show front matter for `new` and `new SLUG` commands
 
-3. Improve output formatting:
+2. Improve output formatting:
    - Add colorized output for terminal display
-   - Implement different output formats (markdown, plain text, etc.)
+   - Create better formatting for `list` command
    - Create beautified clipboard output
 
-4. Write comprehensive tests for:
-   - Interactive selection functionality
+3. Write comprehensive tests for:
    - Enhanced editor features
    - Output formatting options
 
 Tasks:
-- [ ] Research and select appropriate TUI library
-- [ ] Implement interactive prompt selection
-- [ ] Add search functionality for fragments
-- [ ] Create preview functionality for fragments
 - [ ] Enhance editor comments for better usability
 - [ ] Implement colorized terminal output
 - [ ] Add multiple output format options
-- [ ] Write tests for interactive features
+- [ ] Write tests for formatting features
 - [ ] PROMPT 16 COMPLETE
 ```
 
