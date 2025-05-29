@@ -34,7 +34,7 @@ def mock_cache_env(tmp_path, monkeypatch):
                 tmp_path / "detections.yaml",
             ),
         ) as mock_config,
-        patch("prompy.cli.edit_file_with_comments", return_value=True) as mock_edit,
+        patch("prompy.editor.edit_file_with_comments", return_value=True) as mock_edit,
         patch.dict(os.environ, {"EDITOR": "nano"}),
     ):
         yield mock_config, mock_edit, cache_dir

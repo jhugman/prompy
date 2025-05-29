@@ -156,7 +156,7 @@ def test_pbcopy_command_with_slug(mock_output_env):
 
     with (
         runner.isolated_filesystem(),
-        patch("prompy.cli.PromptContext.load_slug") as mock_load_slug,
+        patch("prompy.prompt_context.PromptContext.load_slug") as mock_load_slug,
         patch("prompy.output.output_to_clipboard", return_value=True) as mock_clipboard,
     ):
         # Create a mock prompt file
