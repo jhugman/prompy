@@ -121,6 +121,39 @@ class PromptFiles:
         output = StringIO()
         temp_console = Console(file=output, force_terminal=True)
 
+        # Use the render_help_to_console method to avoid code duplication
+        self.render_help_to_console(
+            temp_console,
+            slug_prefix=slug_prefix,
+            include_syntax=include_syntax,
+            include_header=include_header,
+            inline_description=inline_description,
+            category_filter=category_filter,
+        )
+
+        return output.getvalue()
+
+    def render_help_to_console(
+        self,
+        target_console: Console,
+        *,
+        slug_prefix: str = "",
+        include_syntax: bool = True,
+        include_header: bool = True,
+        inline_description: bool = False,
+        category_filter: Optional[str] = None,
+    ) -> None:
+        """
+        Render formatted help directly to a given console.
+
+        Args:
+            target_console: The Rich console to render to
+            slug_prefix: Optional prefix to add to slug names
+            include_syntax: Whether to include syntax help
+            include_header: Whether to include syntax help
+            inline_description: Whether to include descriptions inline
+            category_filter: Optional category to filter prompts by
+        """
         # Group files by category for task files
         task_files = []
         other_files = []
@@ -173,8 +206,8 @@ class PromptFiles:
 
         if include_header:
             header = Text("PROMPY AVAILABLE FRAGMENTS", style="bold blue")
-            temp_console.print(header)
-            temp_console.print()
+            target_console.print(header)
+            target_console.print()
 
         # Add each section
         for section in sections:
@@ -239,8 +272,8 @@ class PromptFiles:
 
             # Create and print panel containing the table
             panel = Panel(table, title=title, style="blue")
-            temp_console.print(panel)
-            temp_console.print()
+            target_console.print(panel)
+            target_console.print()
 
         # Add syntax help if requested
         if include_syntax:
@@ -260,9 +293,7 @@ class PromptFiles:
                 title=Text("SYNTAX", style="bold blue"),
                 style="blue",
             )
-            temp_console.print(syntax_panel)
-
-        return output.getvalue()
+            target_console.print(syntax_panel)
 
     def _format_arguments(self, args: Optional[Dict[str, Optional[str]]]) -> str:
         """

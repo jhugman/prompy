@@ -88,14 +88,17 @@ class TestEditorHelpDisplay:
 
         display_editor_help("test-project", prompt_files, False)
 
-        # Should have called console.print
-        mock_console.print.assert_called_once()
-        # Check that a Panel was passed to print
-        args = mock_console.print.call_args[0]
-        assert len(args) == 1
-        # Should be a Rich Panel object
-        panel = args[0]
-        assert hasattr(panel, "renderable")  # Panel has a renderable attribute
+        # Should have called console.print multiple times:
+        # 1. Empty line, 2. Title panel, 3. Help text content
+        assert mock_console.print.call_count >= 2
+
+        # Check that a Panel was passed in one of the calls
+        panel_found = False
+        for call in mock_console.print.call_args_list:
+            if call[0] and hasattr(call[0][0], "renderable"):
+                panel_found = True
+                break
+        assert panel_found, "Expected a Panel object in one of the console.print calls"
 
     @patch("prompy.editor.is_terminal_output", return_value=True)
     @patch("prompy.editor.console")
@@ -111,12 +114,19 @@ class TestEditorHelpDisplay:
 
         display_editor_help("test-project", prompt_files, True)
 
-        # Should have called console.print
-        mock_console.print.assert_called_once()
-        # Check that the title contains "Creating new prompt"
-        args = mock_console.print.call_args[0]
-        panel = args[0]
-        assert "Creating new prompt" in str(panel.title)
+        # Should have called console.print multiple times
+        assert mock_console.print.call_count >= 2
+
+        # Check that one of the calls contains "Creating new prompt" in the panel content
+        title_found = False
+        for call in mock_console.print.call_args_list:
+            if call[0] and hasattr(call[0][0], "renderable"):
+                panel = call[0][0]
+                panel_content = str(panel.renderable)
+                if "Creating new prompt" in panel_content:
+                    title_found = True
+                    break
+        assert title_found, "Expected 'Creating new prompt' in panel content"
 
     @patch("prompy.editor.is_terminal_output", return_value=True)
     @patch("prompy.editor.console")
@@ -132,12 +142,19 @@ class TestEditorHelpDisplay:
 
         display_editor_help("test-project", prompt_files, False)
 
-        # Should have called console.print
-        mock_console.print.assert_called_once()
-        # Check that the title contains "Editing prompt"
-        args = mock_console.print.call_args[0]
-        panel = args[0]
-        assert "Editing prompt" in str(panel.title)
+        # Should have called console.print multiple times
+        assert mock_console.print.call_count >= 2
+
+        # Check that one of the calls contains "Editing prompt" in the panel content
+        title_found = False
+        for call in mock_console.print.call_args_list:
+            if call[0] and hasattr(call[0][0], "renderable"):
+                panel = call[0][0]
+                panel_content = str(panel.renderable)
+                if "Editing prompt" in panel_content:
+                    title_found = True
+                    break
+        assert title_found, "Expected 'Editing prompt' in panel content"
 
 
 class TestEditorHelpClear:
@@ -154,8 +171,9 @@ class TestEditorHelpClear:
         """Test clear_editor_help in terminal environment."""
         clear_editor_help()
 
-        # Should have called console.print twice (for spacing and completion message)
-        assert mock_console.print.call_count == 2
+        # Should have called console.clear and console.print once each
+        mock_console.clear.assert_called_once()
+        mock_console.print.assert_called_once()
 
 
 class TestEditorSuccessDisplay:
