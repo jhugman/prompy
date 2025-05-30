@@ -89,7 +89,7 @@ class TestEditorMockUtility:
 
     def test_mock_editor_in_edit_file_with_comments(self):
         """Test that the mock editor works with the edit_file_with_comments function."""
-        mock_content = "This is mock edited content with comments.\n\n<!--\nPROMPY AVAILABLE FRAGMENTS:"
+        mock_content = "This is mock edited content."
 
         # Set up context and prompt files
         context = PromptContext(project_name="test-project", language="python")
@@ -120,8 +120,8 @@ class TestEditorMockUtility:
             with open(temp_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            assert content == "This is mock edited content with comments."
-            assert "PROMPY AVAILABLE FRAGMENTS" not in content
+            # Content should be exactly what the mock editor wrote
+            assert content == mock_content
         finally:
             # Clean up
             os.unlink(temp_path)

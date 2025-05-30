@@ -11,10 +11,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from prompy.editor import (
-    add_help_comments,
     find_editor,
     launch_editor,
-    remove_help_comments,
 )
 from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
@@ -101,85 +99,3 @@ class TestEditorLaunching:
             mock_run.assert_called_once_with(
                 ["code", "-w", "test-file.md"], check=False
             )
-
-
-class TestHelpComments:
-    """Tests for help comments functionality."""
-
-    def test_add_help_comments_empty_content(self):
-        """Test adding help comments to empty content."""
-        # Create a mock context and prompt files
-        context = PromptContext(project_name="test-project", language="python")
-
-        # Add a test prompt file
-        test_file = PromptFile(slug="project/test", description="Test description")
-        prompt_files = PromptFiles(
-            project_name="test-project",
-            language_name="python",
-            projects={test_file.slug: test_file},
-        )
-
-        content = ""
-        result = add_help_comments(content, prompt_files)
-
-        # Strip ANSI codes before checking content
-        clean_result = re.sub(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", result)
-
-        assert "PROMPY AVAILABLE FRAGMENTS" in clean_result
-        assert (
-            "project/test" in clean_result
-        )  # Changed assertion to check for the actual slug instead
-        assert "Test description" in clean_result
-        assert (
-            "This comment section will be removed from the final prompt" in clean_result
-        )
-
-    def test_add_help_comments_existing_content(self):
-        pytest.skip()
-        """Test adding help comments to existing content."""
-        context = PromptContext(project_name="test-project", language="python")
-        prompt_files = PromptFiles()
-
-        content = "This is existing content.\n"
-        result = add_help_comments(content, prompt_files)
-
-        # Strip ANSI codes before checking content
-        clean_result = re.sub(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", result)
-
-        assert clean_result.startswith("This is existing content.")
-        assert "PROMPY AVAILABLE FRAGMENTS" in clean_result
-        assert "SYNTAX:" in clean_result
-
-    def test_remove_help_comments(self):
-        """Test removing help comments."""
-        content = """This is some content.
-
-<!--
-PROMPY AVAILABLE FRAGMENTS:
---------------------------
-
-PROJECT FRAGMENTS (project: test):
-  @project/test
-    Test description
-
-SYNTAX:
-  @fragment-name(arg1, key=value)
-  @path/to/fragment
-  @project/fragment
-  @language/fragment
-
-This comment section will be removed from the final prompt.
--->"""
-
-        result = remove_help_comments(content)
-
-        assert result == "This is some content."
-        assert "PROMPY AVAILABLE FRAGMENTS" not in result
-
-    def test_remove_help_comments_no_comments(self):
-        """Test removing help comments when there are none."""
-        content = "This is some content without help comments."
-
-        result = remove_help_comments(content)
-
-        assert result == content
