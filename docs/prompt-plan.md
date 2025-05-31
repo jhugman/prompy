@@ -654,12 +654,7 @@ You will be implementing distribution and installation enhancements for the Prom
    - Create standalone executables for Windows
    - Test installation process on different platforms
 
-3. Implement automatic updates:
-   - Add version checking functionality
-   - Create update notification system
-   - Implement self-update capability
-
-4. Write comprehensive tests for:
+3. Write comprehensive tests for:
    - Package installation process
    - Entry point functionality
    - Update checking mechanism
@@ -670,8 +665,6 @@ Tasks:
 - [ ] Review and update dependencies
 - [ ] Create Homebrew formula for macOS
 - [ ] Build standalone executable for Windows
-- [ ] Implement version checking functionality
-- [ ] Add update notification system
 - [ ] Write tests for package installation
 - [ ] PROMPT 18 COMPLETE
 ```
