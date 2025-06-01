@@ -5,31 +5,45 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "prompy"
 version = "0.1.0"
-description = "A command-line tool for building prompts with reusable fragments"
+description = "A command-line tool for building and managing reusable prompt templates for AI tools"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    {name = "Prompy Team", email = "info@example.com"}
+    {name = "Prompy Development Team", email = "prompy-dev@example.com"}
 ]
 maintainers = [
-    {name = "Prompy Team", email = "info@example.com"}
+    {name = "Prompy Development Team", email = "prompy-dev@example.com"}
 ]
-keywords = ["prompt", "cli", "template", "ai", "llm", "copilot"]
-urls = {Homepage = "https://github.com/yourusername/prompy", Documentation = "https://github.com/yourusername/prompy#readme", "Source Code" = "https://github.com/yourusername/prompy", "Bug Tracker" = "https://github.com/yourusername/prompy/issues"}
+keywords = [
+    "prompt", "cli", "template", "ai", "llm", "copilot", "jinja2",
+    "fragments", "development", "automation", "prompt-engineering",
+    "prompt-templates", "ai-tools", "code-generation", "developer-tools"
+]
+urls = {Homepage = "https://github.com/jhugman/prompy", Documentation = "https://github.com/jhugman/prompy#readme", "Source Code" = "https://github.com/jhugman/prompy", "Bug Tracker" = "https://github.com/jhugman/prompy/issues", Repository = "https://github.com/jhugman/prompy.git"}
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Code Generators",
     "Topic :: Text Processing :: Markup",
+    "Topic :: Text Processing :: General",
     "Topic :: Utilities",
+    "Typing :: Typed",
 ]
 dependencies = [
     "click>=8.0.0",
@@ -37,16 +51,26 @@ dependencies = [
     "pyyaml>=6.0.0",
     "pyperclip>=1.8.0",
     "rich>=14.0.0",
-    "pytest-benchmark>=5.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "pytest-cov",
-    "ruff",
-    "black",
-    "isort",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=5.1.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=5.1.0",
+]
+lint = [
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
 ]
 
 [project.scripts]
@@ -68,3 +92,9 @@ target-version = ['py39']
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
+]
