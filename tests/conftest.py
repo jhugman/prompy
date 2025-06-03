@@ -5,7 +5,7 @@ Pytest configuration file.
 import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -92,7 +92,6 @@ def mock_editor_autouse(request, monkeypatch):
     # Also patch subprocess.run to prevent any subprocess from being spawned
     # This is a safety measure in case the patching of launch_editor somehow fails
     def mock_subprocess_run(args, *pargs, **kwargs):
-        import subprocess
 
         print(f"\nMOCK SUBPROCESS: Prevented execution of: {args}")
         mock_result = type(

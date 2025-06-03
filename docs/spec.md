@@ -215,7 +215,7 @@ Edit language detection rules
   detections.yaml
 ```
 
-Using `$project` may also look for a `.prompy` directory in the project root (i.e. the first ancestor of pwd containing a `.git` directory or other project markers). This optional directory is structured differently:
+Using `project` may also look for a `.prompy` directory in the project root (i.e. the first ancestor of pwd containing a `.git` directory or other project markers). This optional directory is structured differently:
 
 ```
 $PROJECT_DIR/
@@ -333,7 +333,7 @@ When using `mv`:
 ### Fragment Resolution Algorithm
 1. Find all fragment references in the current text
 2. For each reference:
-   - Resolve the path (handling $project, $language)
+   - Resolve the path (handling project, language)
    - Load the fragment file
    - Parse arguments and validate required ones
    - Apply arguments to the fragment content

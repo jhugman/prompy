@@ -4,10 +4,7 @@ Tests for basic diagnostics functionality.
 These tests verify the core diagnostic functionality without the CLI integration.
 """
 
-import re
-from unittest.mock import patch
 
-import pytest
 
 from prompy.diagnostics import (
     DiagnosticsManager,

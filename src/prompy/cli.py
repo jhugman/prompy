@@ -4,10 +4,8 @@ Command-line interface for Prompy.
 
 import logging
 import re
-import subprocess
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional, Tuple
 
 import click
 import yaml
@@ -27,7 +25,7 @@ from prompy.config import (
     find_project_dir,
 )
 from prompy.context import from_click_context
-from prompy.diagnostics import diagnostics_manager, enable_diagnostics
+from prompy.diagnostics import enable_diagnostics
 from prompy.error_handling import PrompyError, handle_error
 from prompy.prompt_file import PromptFile
 from prompy.prompt_files import PromptFiles
@@ -128,7 +126,8 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
     """
     Create a new prompt and open it in an editor.
 
-    If PROMPT_SLUG is provided, use it as a template. Otherwise, start with an empty prompt.
+    If PROMPT_SLUG is provided, use it as a template. Otherwise, start with an
+    empty prompt.
     """
     from prompy.editor import edit_file_with_comments
 
@@ -244,7 +243,10 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
             if not project_name:
                 raise PrompyError(
                     "No project detected",
-                    suggestion="Specify a project with --project or run prompy in a project directory",
+                    suggestion=(
+                        "Specify a project with --project or run prompy in a "
+                        "project directory"
+                    ),
                 )
 
             # Get the cache file path
@@ -268,7 +270,8 @@ def edit(ctx: click.Context, prompt_slug: Optional[str]) -> None:
         # Load prompt files for help comments
         prompt_files = prompt_context.load_all()
 
-        # Determine if this is editing a new prompt (check if we're editing current one-off)
+        # Determine if this is editing a new prompt
+        # (check if we're editing current one-off)
         is_new_prompt = not prompt_slug
 
         # Launch the editor with enhanced features
@@ -330,7 +333,10 @@ def out(
             if not project_name:
                 raise PrompyError(
                     "No project detected",
-                    suggestion="Specify a project with --project or run prompy in a project directory",
+                    suggestion=(
+                        "Specify a project with --project or run prompy in a "
+                        "project directory"
+                    ),
                 )
 
             # Load the current cache content
@@ -338,7 +344,9 @@ def out(
             if not success or not content:
                 raise PrompyError(
                     "No current prompt found",
-                    suggestion="Try specifying a prompt slug or providing content via stdin",
+                    suggestion=(
+                        "Try specifying a prompt slug or providing content via stdin"
+                    ),
                 )
             prompt_file = PromptFile(slug="cache", markdown_template=content)
         else:
@@ -420,7 +428,10 @@ def save(
         if not success or not content:
             raise PrompyError(
                 "No current prompt found",
-                suggestion="Create a new prompt with 'prompy new' or edit an existing one with 'prompy edit'",
+                suggestion=(
+                    "Create a new prompt with 'prompy new' or edit an existing one "
+                    "with 'prompy edit'"
+                ),
             )
 
         # Get the destination path
@@ -494,7 +505,10 @@ def pbcopy(ctx: click.Context, prompt_slug: Optional[str]) -> None:
     "--format",
     type=click.Choice(["simple", "detailed", "json"]),
     default="detailed",
-    help="Output format: simple (just slugs), detailed (with descriptions), or json (machine-readable).",
+    help=(
+        "Output format: simple (just slugs), detailed (with descriptions), "
+        "or json (machine-readable)."
+    ),
 )
 @click.option(
     "--json",
@@ -851,19 +865,22 @@ def detections(ctx: click.Context, validate: bool) -> None:
         try:
             with open(detections_file, "r", encoding="utf-8") as f:
                 content = f.read()
-                current_detections = yaml.safe_load(content)
+                yaml.safe_load(content)  # Just validate, don't store
         except FileNotFoundError:
             raise PrompyError(
                 "Detections file not found",
                 details=f"Could not find file at: {detections_file}",
-                suggestion="💡 Run 'prompy detections' to create and edit the detections file, or check file permissions",
+                suggestion=(
+                    "💡 Run 'prompy detections' to create and edit the detections "
+                    "file, or check file permissions"
+                ),
             )
         except yaml.YAMLError as e:
             # Get file content and extract error info
             try:
                 with open(detections_file, "r", encoding="utf-8") as f:
                     content = f.read()
-            except:
+            except Exception:
                 content = None
 
             # Extract line/column info from the error message

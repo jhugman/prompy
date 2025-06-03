@@ -61,11 +61,13 @@ dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
     "isort>=5.0.0",
+    "tomli>=1.2.0; python_version<'3.11'",
 ]
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-benchmark>=5.1.0",
+    "tomli>=1.2.0; python_version<'3.11'",
 ]
 lint = [
     "ruff>=0.1.0",
@@ -83,7 +85,10 @@ packages = ["prompy"]
 [tool.ruff]
 line-length = 88
 target-version = "py39"
-lint.select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+per-file-ignores = {"tests/**" = ["E501"], "docs/**" = ["E501"], "scripts/**" = ["E501"]}
 
 [tool.black]
 line-length = 88
@@ -92,6 +97,12 @@ target-version = ['py39']
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
 
 [dependency-groups]
 dev = [

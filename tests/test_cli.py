@@ -2,8 +2,6 @@
 Tests for the CLI module.
 """
 
-import os
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 

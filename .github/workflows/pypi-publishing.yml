@@ -1,0 +1,182 @@
+name: PyPI Publishing
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Perform a dry run (test without publishing)'
+        required: false
+        type: boolean
+        default: false
+      test_pypi:
+        description: 'Publish to TestPyPI instead of PyPI'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.13']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Test with pytest
+      run: ./run.sh test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Lint code
+      run: ./run.sh lint
+
+  publish-pypi:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Update version in pyproject.toml
+      if: ${{ !inputs.dry_run }}
+      run: |
+        VERSION="${{ inputs.version }}"
+        sed -i "s/version = \"[^\"]*\"/version = \"$VERSION\"/" pyproject.toml
+        echo "Updated version to $VERSION"
+
+    - name: Build package
+      run: ./run.sh build
+
+    - name: Check package
+      run: |
+        uv pip install twine
+        twine check dist/*
+
+    - name: Dry run summary
+      if: ${{ inputs.dry_run }}
+      run: |
+        echo "🧪 DRY RUN COMPLETE"
+        echo "Version: ${{ inputs.version }}"
+        echo "Target: ${{ inputs.test_pypi && 'TestPyPI' || 'PyPI' }}"
+        echo ""
+        echo "Built packages:"
+        ls -la dist/
+        echo ""
+        echo "✅ All checks passed! Ready for real publishing."
+
+    - name: Publish to TestPyPI
+      if: ${{ !inputs.dry_run && inputs.test_pypi }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+
+    - name: Publish to PyPI
+      if: ${{ !inputs.dry_run && !inputs.test_pypi }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Create GitHub Release
+      if: ${{ !inputs.dry_run && !inputs.test_pypi }}
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ inputs.version }}
+        name: Release ${{ inputs.version }}
+        body: |
+          ## Release ${{ inputs.version }}
+
+          ### Installation
+
+          **PyPI:**
+          ```bash
+          pip install prompy==${{ inputs.version }}
+          ```
+
+          **Homebrew** (after formula is updated):
+          ```bash
+          brew install prompy
+          ```
+
+          ### Next Steps
+
+          To update the Homebrew formula, run the Homebrew Publishing workflow
+          or manually update using:
+          ```bash
+          # Wait 10-15 minutes for PyPI propagation, then:
+          gh workflow run homebrew-publishing.yml -f version=${{ inputs.version }}
+          ```
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
+        draft: false
+        prerelease: false
+
+    - name: Success summary
+      if: ${{ !inputs.dry_run }}
+      run: |
+        TARGET="${{ inputs.test_pypi && 'TestPyPI' || 'PyPI' }}"
+        echo "🎉 Successfully published prompy v${{ inputs.version }} to $TARGET!"
+        echo ""
+        if [ "${{ inputs.test_pypi }}" = "true" ]; then
+          echo "Test your package:"
+          echo "pip install -i https://test.pypi.org/simple/ prompy==${{ inputs.version }}"
+        else
+          echo "Your package is now available:"
+          echo "pip install prompy==${{ inputs.version }}"
+          echo ""
+          echo "Next: Update Homebrew formula using the Homebrew Publishing workflow"
+        fi

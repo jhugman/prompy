@@ -31,9 +31,9 @@ The files, known as prompt fragments, can be divided into two sets:
 ### Slugs
 
 Prompts are identified by slugs with the format:
-- `project/name`: Project-specific prompt
-- `language/name`: Language-specific prompt
-- `fragments/name`: Generic fragment
+- `project/name`, i.e. a path starting with `project`: for project-specific prompt
+- `language/name`, i.e. a path starting with `language`: for language-specific prompt
+- `fragments/name`, i.e. any path starting with a letter: Generic fragment
 
 ## A worked example
 
@@ -61,7 +61,7 @@ This will open an editor, which you can paste the following:
 
 ```markdown
 1. Implement some functionality.
-2. {{ @generic/all-tests-pass() }}
+2. {{ @generic/all-tests-pass }}
 ```
 
 Once you save and quit the editor, you can use the shell command to get the expanded prompt:
@@ -95,7 +95,7 @@ We can save this prompt for later re-use:
 prompy save implement-my-feature
 ```
 
-## More advanced
+## Prompts can include other prompts
 
 Now we have a fragment of a prompt put into another. These can be nested arbitrarily deep.
 
@@ -128,7 +128,7 @@ echo "uv venv && uv sync --all-extras && source .venv/bin/activate" | prompy new
 Let's make another prompt fragment to tell the LLM to use this:
 
 ```sh
-echo 'Run the following command first: `{{ @project/init-shell() }}`' | prompy new --save generic/init-shell
+echo 'Run the following command first: `{{ @project/init-shell }}`' | prompy new --save generic/init-shell
 ```
 
 Now, let's go back to our original example prompt:
@@ -138,9 +138,9 @@ prompy edit implement-my-feature
 ```
 
 ```markdown
-1. {{ @generic/init-shell() }}
+1. {{ @generic/init-shell }}
 2. Implement some functionality.
-3. {{ @generic/all-tests-pass() }}
+3. {{ @generic/all-tests-pass }}
 ```
 
 Finally, we can run:
@@ -157,11 +157,40 @@ This expands to something you can paste into a LLM prompt.
 3. You know when you are finished when all tests pass.
 ```
 
-# More advanced examples can be found below
+# Project specific prompts
 
 The `$PROJECT_DIR` is defined as the first directory with the `.git` directory, starting with the current directory, then walking back up to the root.
 
 If the `$PROJECT_DIR` contains a directory called `.prompy`, then files are saved there.
+
+We might want to re-use most of our new `implement-my-feature` prompt in another project, but this second project has different setup steps.
+
+In the first project we can move the `generic/init-shell` to the project specific
+`project/init-shell`.
+
+```sh
+prompy mv generic/init-shell project/init-shell
+```
+
+In the second project we can make a new `init-shell`:
+
+```sh
+echo "source bootstrap.sh" | prompy new --save project/init-shell
+```
+
+So now, running
+
+```sh
+prompy out implement-my-feature
+```
+
+in our new project expands to:
+
+```markdown
+1. Run the following command first: `source bootstrap.sh`
+2. Implement some functionality.
+3. You know when you are finished when all tests pass.
+```
 
 ## Prompt Fragments
 
@@ -180,74 +209,16 @@ arguments:
 
 # Markdown content goes here
 
-This is a template that can use $arg1 and $arg2 variables.
+This is a template that can use {{ arg1 }} and {{arg2}} variables.
 ```
 
 ### Arguments
 
 Arguments are passed to templates and can be referenced:
-- `$argument_name`: Will be replaced with the argument value
+- `{{ argument_name }}`: Will be replaced with the argument value
 - Default values can be provided within the fragment reference
 
-## Fragment References
 
-Reference other fragments using the Jinja2 syntax:
-
-```markdown
-{{ @fragments/common-header(project="MyProject", description="A tool for managing widgets") }}
-
-# Main content here with Jinja2 features
-{% for example in ["basic", "advanced"] %}
-  ## {{ example|capitalize }} Example
-  {{ @fragments/code-example(language="python", type=example) }}
-{% endfor %}
-
-{{ @fragments/common-footer() }}
-```
-
-### Reference Syntax
-
-The basic syntax is:
-```
-{{ @slug(arg1="value1", arg2="value2") }}
-```
-
-Arguments can be:
-- String literals: `"value"` or `'value'`
-- Variables from the parent template: `variable`
-- Omitted (if they have defaults)
-- Other fragments for nested inclusion: e.g.
-    `@another-fragment`, `@another-fragment-with-arguments(arg1='foo')`
-
-### Jinja2 Features
-
-With the Jinja2-enhanced syntax, you can use powerful templating features:
-
-#### Conditionals
-
-```markdown
-{% if advanced_user %}
-  {{ @fragments/advanced-instructions() }}
-{% else %}
-  {{ @fragments/basic-instructions() }}
-{% endif %}
-```
-
-#### Loops
-
-```markdown
-{% for language in ["python", "javascript", "rust"] %}
-  ## {{ language|capitalize }} Example
-  {{ @fragments/code-example(language=language) }}
-{% endfor %}
-```
-
-#### Variables
-
-```markdown
-{% set project_name = "MyProject" %}
-{{ @fragments/common-header(project=project_name) }}
-```
 
 ## Language Detection
 

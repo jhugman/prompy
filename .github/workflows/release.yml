@@ -1,0 +1,64 @@
+name: Release (Legacy)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  trigger-publishing:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get version from tag or input
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Trigger PyPI Publishing
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'pypi-publishing.yml',
+            ref: 'main',
+            inputs: {
+              version: '${{ steps.get_version.outputs.version }}',
+              dry_run: 'false',
+              test_pypi: 'false'
+            }
+          });
+
+          console.log('✅ Triggered PyPI publishing workflow');
+
+    - name: Instructions
+      run: |
+        VERSION="${{ steps.get_version.outputs.version }}"
+        echo "🚀 Release workflow triggered!"
+        echo ""
+        echo "✅ PyPI publishing workflow has been started"
+        echo "⏳ After PyPI publishing completes, trigger Homebrew update:"
+        echo ""
+        echo "gh workflow run homebrew-publishing.yml \\"
+        echo "  -f version=$VERSION \\"
+        echo "  -f dry_run=false \\"
+        echo "  -f commit_changes=true \\"
+        echo "  -f create_pr=false"
+        echo ""
+        echo "Or use the GitHub Actions UI to manually trigger workflows."

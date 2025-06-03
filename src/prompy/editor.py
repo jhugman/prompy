@@ -8,14 +8,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Optional
 
 import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from prompy.prompt_context import PromptContext
 from prompy.prompt_files import PromptFiles
 
 # Initialize rich console for terminal output

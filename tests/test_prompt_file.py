@@ -2,13 +2,10 @@
 Tests for prompt file functionality.
 """
 
-import re
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import pytest
-import yaml
 
 from prompy.error_handling import FragmentNotFoundError
 from prompy.prompt_context import PromptContext

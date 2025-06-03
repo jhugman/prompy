@@ -2,7 +2,6 @@
 Shell completion functions for Prompy CLI.
 """
 
-from typing import List
 
 import click
 

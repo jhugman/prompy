@@ -2,18 +2,9 @@
 Shell completion support for Prompy CLI.
 """
 
-import os
-import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
-import click
-from click.shell_completion import CompletionItem
 
 # Import needed functions from the codebase
-from prompy.config import ensure_config_dirs, find_project_dir
-from prompy.context import create_prompt_context
-from prompy.prompt_files import PromptFiles
 
 # Shell completion script templates
 BASH_COMPLETION_TEMPLATE = """
@@ -21,7 +12,8 @@ _prompy_completion() {
     local IFS=$'\\n'
     local response
 
-    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD _PROMPY_COMPLETE=bash_complete $1)
+    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD \\
+        _PROMPY_COMPLETE=bash_complete $1)
 
     for completion in $response; do
         IFS=',' read type value <<< "$completion"
@@ -48,7 +40,8 @@ _prompy_completion() {
     local -a response
     (( ! $+commands[prompy] )) && return 1
 
-    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) _PROMPY_COMPLETE=zsh_complete prompy)}")
+    response=("${(@f)$(env COMP_WORDS="${words[*]}" \\
+        COMP_CWORD=$((CURRENT-1)) _PROMPY_COMPLETE=zsh_complete prompy)}")
 
     for type value description in ${response}; do
         if [[ "$type" == 'dir' ]]; then
@@ -79,7 +72,8 @@ compdef _prompy_completion prompy
 
 FISH_COMPLETION_TEMPLATE = """
 function __fish_prompy_complete
-    set -l response (env _PROMPY_COMPLETE=fish_complete COMP_WORDS=(commandline -cp) COMP_CWORD=(commandline -t) prompy)
+    set -l response (env _PROMPY_COMPLETE=fish_complete \\
+        COMP_WORDS=(commandline -cp) COMP_CWORD=(commandline -t) prompy)
 
     for completion in $response
         set -l name (string split --max 1 "," $completion)

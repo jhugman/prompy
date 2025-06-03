@@ -2,12 +2,9 @@
 Tests for the cache module.
 """
 
-import os
 import sys
 from pathlib import Path
-from unittest.mock import mock_open, patch
-
-import pytest
+from unittest.mock import patch
 
 from prompy.cache import (
     append_to_cache,

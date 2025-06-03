@@ -2,7 +2,6 @@
 Tests for the frontmatter module.
 """
 
-import pytest
 
 from prompy.frontmatter import (
     extract_arguments_from_content,
@@ -88,7 +87,8 @@ def test_extract_description_from_content_actual_content():
 
 {{ @steps/init-shell }}
 
-`foo_method` and `bar_method` is not being sufficiently tested. Please generate tests to test at least the following:
+`foo_method` and `bar_method` is not being sufficiently tested. Please generate
+tests to test at least the following:
 """
 
     description = extract_description_from_content(content)
@@ -118,7 +118,10 @@ def test_extract_description_from_content_with_template_1cr():
 
 def test_generate_frontmatter_description_with_muliple_templates():
     """Test that description works with template inclusion."""
-    content = "{{ @template-inclusion }} {{ @template-inclusion1 }}{{ variable }}Do the thing, then another."
+    content = (
+        "{{ @template-inclusion }} {{ @template-inclusion1 }}{{ variable }}"
+        "Do the thing, then another."
+    )
 
     description = extract_description_from_content(content)
 
@@ -127,7 +130,11 @@ def test_generate_frontmatter_description_with_muliple_templates():
 
 def test_extract_description_from_content_long_description_truncation():
     """Test that long descriptions are truncated."""
-    content = "This is a very long first sentence that should be truncated because it exceeds the maximum length limit for descriptions in the frontmatter generation process."
+    content = (
+        "This is a very long first sentence that should be truncated because "
+        "it exceeds the maximum length limit for descriptions in the "
+        "frontmatter generation process."
+    )
 
     description = extract_description_from_content(content)
     assert len(description) <= 80

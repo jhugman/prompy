@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from yaml.representer import SafeRepresenter
 
 
 # Configure PyYAML to use literal style for strings containing special characters
 def _literal_str_representer(dumper, data):
-    # Use literal style for strings with newlines, special chars or if they end with ellipsis
+    # Use literal style for strings with newlines, special chars or if they
+    # end with ellipsis
     if "\n" in data or "..." in data:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
@@ -67,7 +67,8 @@ class PromptFile:
             content (str): The content to parse
 
         Returns:
-            Tuple[Dict[str, Any], str, str]: Parsed data, raw frontmatter string, and content string
+            Tuple[Dict[str, Any], str, str]: Parsed data, raw frontmatter
+                string, and content string
         """
         # Check for frontmatter (content between --- markers)
         frontmatter_match = re.match(
@@ -212,8 +213,8 @@ class PromptFile:
         Returns:
             bool: True if this is a valid fragment
         """
-        # A fragment is valid if it has arguments and all required arguments have defaults,
-        # or if it has no arguments
+        # A fragment is valid if it has arguments and all required arguments
+        # have defaults, or if it has no arguments
         if self.arguments is None:
             return False
 

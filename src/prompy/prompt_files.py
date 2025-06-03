@@ -5,7 +5,6 @@ Module for managing collections of prompt files.
 import logging
 from typing import Dict, List, Optional
 
-import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -175,7 +174,10 @@ class PromptFiles:
         # Define sections to display
         sections = [
             {
-                "title": f"Project Fragments {f'({self._project_name})' if self._project_name else ''}",
+                "title": (
+                    f"Project Fragments "
+                    f"{f'({self._project_name})' if self._project_name else ''}"
+                ),
                 "style": "blue",
                 "items": (
                     sorted(self._project_prompts.items())
@@ -184,7 +186,10 @@ class PromptFiles:
                 ),
             },
             {
-                "title": f"Language Fragments {f'({self._language_name})' if self._language_name else ''}",
+                "title": (
+                    f"Language Fragments "
+                    f"{f'({self._language_name})' if self._language_name else ''}"
+                ),
                 "style": "blue",
                 "items": (
                     sorted(self._language_prompts.items())

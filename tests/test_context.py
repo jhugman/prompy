@@ -4,8 +4,6 @@ Tests for the context module.
 
 from pathlib import Path
 
-import pytest
-
 from prompy.prompt_context import PromptContext
 
 
@@ -49,7 +47,8 @@ def test_parse_prompt_slug_existence():
         # Load all available prompt files
         prompt_files = context.load_all()
 
-        # For each file in the collection, ensure that parse_prompt_slug returns a path that exists
+        # For each file in the collection, ensure that parse_prompt_slug returns
+        # a path that exists
         for slug in prompt_files.available_slugs():
             path = context.parse_prompt_slug(slug, should_exist=True)
             assert path is not None, f"Path for slug '{slug}' should not be None"

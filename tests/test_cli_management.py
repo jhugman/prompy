@@ -2,9 +2,7 @@
 Tests for CLI management commands: list, mv, cp, rm.
 """
 
-import os
-from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -27,14 +25,22 @@ def mock_management_env(tmp_path, monkeypatch):
 
     # Create some test prompts
     test_files = {
-        fragments_dir
-        / "test-fragment.md": "---\ndescription: A test fragment\ncategories: [test, sample]\n---\nTest fragment content",
-        fragments_dir
-        / "another-fragment.md": "---\ndescription: Another fragment\ncategories: [sample]\n---\nAnother fragment content",
-        languages_dir
-        / "test-lang-fragment.md": "---\ndescription: A language fragment\ncategories: [python, test]\n---\nTest language content",
-        projects_dir
-        / "test-project-fragment.md": "---\ndescription: A project fragment\ncategories: [project, test]\n---\nTest project content",
+        fragments_dir / "test-fragment.md": (
+            "---\ndescription: A test fragment\ncategories: [test, sample]\n---\n"
+            "Test fragment content"
+        ),
+        fragments_dir / "another-fragment.md": (
+            "---\ndescription: Another fragment\ncategories: [sample]\n---\n"
+            "Another fragment content"
+        ),
+        languages_dir / "test-lang-fragment.md": (
+            "---\ndescription: A language fragment\ncategories: [python, test]\n---\n"
+            "Test language content"
+        ),
+        projects_dir / "test-project-fragment.md": (
+            "---\ndescription: A project fragment\ncategories: [project, test]\n---\n"
+            "Test project content"
+        ),
     }
 
     for file_path, content in test_files.items():

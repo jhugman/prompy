@@ -16,10 +16,12 @@ def test_preprocess_template_simple_include_no_brackets():
 
 
 def test_preprocess_template_simple_include_with_brackets():
-    """Test preprocessing a template with a simple include with brackets but no arguments."""
+    """Test preprocessing a template with a simple include with brackets but
+    no arguments."""
     template = "Here is a fragment reference: {{ @fragment() }}"
     result = preprocess_template(template)
-    # The regex pattern in the preprocess_template function leaves the empty parens content
+    # The regex pattern in the preprocess_template function leaves the empty
+    # parens content
     expected = (
         'Here is a fragment reference: {{ include_fragment("fragment", indent="") }}'
     )

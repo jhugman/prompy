@@ -3,13 +3,8 @@ Tests for enhanced editor features.
 """
 
 import os
-import sys
 import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
-from rich.console import Console
 
 from prompy.editor import (
     clear_editor_help,
@@ -18,7 +13,6 @@ from prompy.editor import (
     edit_file_with_comments,
     is_terminal_output,
 )
-from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
 from prompy.prompt_files import PromptFiles
 
@@ -117,7 +111,8 @@ class TestEditorHelpDisplay:
         # Should have called console.print multiple times
         assert mock_console.print.call_count >= 2
 
-        # Check that one of the calls contains "Creating new prompt" in the panel content
+        # Check that one of the calls contains "Creating new prompt" in the
+        # panel content
         title_found = False
         for call in mock_console.print.call_args_list:
             if call[0] and hasattr(call[0][0], "renderable"):

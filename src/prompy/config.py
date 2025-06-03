@@ -35,7 +35,8 @@ def ensure_config_dirs() -> Tuple[Path, Path, Path, Path]:
     Ensure that all necessary config directories exist.
 
     Returns:
-        Tuple[Path, Path, Path, Path]: Tuple containing config_dir, prompts_dir, cache_dir, detections_file
+        Tuple[Path, Path, Path, Path]: Tuple containing config_dir, prompts_dir,
+            cache_dir, detections_file
     """
     config_dir = get_config_dir()
 
@@ -353,11 +354,14 @@ def detect_language(
     project_dir: Optional[Path] = None, sample_files_limit: int = 10
 ) -> Optional[str]:
     """
-    Detect the language of the project based on file extensions, directory names, and content patterns.
+    Detect the language of the project based on file extensions, directory
+    names, and content patterns.
 
     Args:
-        project_dir: Optional path to the project directory. If None, uses current directory.
-        sample_files_limit: Maximum number of files to sample for content pattern matching.
+        project_dir: Optional path to the project directory. If None, uses
+            current directory.
+        sample_files_limit: Maximum number of files to sample for content
+            pattern matching.
 
     Returns:
         Optional[str]: Detected language or None if no language could be determined
@@ -413,7 +417,10 @@ def detect_language(
             except Exception as e:
                 logger.debug(
                     f"Error matching dir pattern {pattern} for {lang}: {e}"
-                )  # Sample some files for content pattern matching - include all files if no direct pattern matches
+                )
+
+        # Sample some files for content pattern matching - include all files
+        # if no direct pattern matches
     if not sample_files and list(project_dir.glob("**/*")):
         for file_path in project_dir.glob("**/*"):
             if file_path.is_file() and file_path.suffix in [
@@ -462,7 +469,8 @@ def detect_language(
 
                 if pattern_matches > 0:
                     logger.debug(
-                        f"Found {pattern_matches} content matches for {lang} in {file_path}"
+                        f"Found {pattern_matches} content matches for {lang} "
+                        f"in {file_path}"
                     )
                     # Give more weight to content patterns if no file extension matches
                     content_weight = 1.0 if max(language_scores.values()) == 0 else 0.5
