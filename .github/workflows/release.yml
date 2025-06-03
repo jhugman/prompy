@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.13']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Test with pytest
+      run: ./run.sh test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Lint code
+      run: ./run.sh lint
+
+  publish:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Setup environment
+      run: ./run.sh setup
+
+    - name: Build package
+      run: ./run.sh build
+
+    - name: Check package
+      run: |
+        uv pip install twine
+        twine check dist/*
+
+    - name: Get version from tag or input
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get_version.outputs.version }}
+        name: Release ${{ steps.get_version.outputs.version }}
+        body: |
+          ## Release ${{ steps.get_version.outputs.version }}
+
+          ### Installation
+
+          **PyPI:**
+          ```bash
+          pip install prompy==${{ steps.get_version.outputs.version }}
+          ```
+
+          **Homebrew** (after formula is updated):
+          ```bash
+          brew install prompy
+          ```
+
+          ### Homebrew Formula Update
+          To update the Homebrew formula:
+          ```bash
+          python scripts/update_homebrew.py ${{ steps.get_version.outputs.version }}
+          git add packaging/homebrew/prompy.rb
+          git commit -m "Update Homebrew formula to v${{ steps.get_version.outputs.version }}"
+          git push
+          ```
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
+        draft: false
+        prerelease: false
+
+    - name: Generate Homebrew update instructions
+      run: |
+        VERSION="${{ steps.get_version.outputs.version }}"
+        echo "🍺 Package published to PyPI!"
+        echo ""
+        echo "To update Homebrew formula:"
+        echo "1. Wait 10-15 minutes for PyPI to propagate"
+        echo "2. Run: python scripts/update_homebrew.py $VERSION"
+        echo "3. Commit: git add packaging/homebrew/prompy.rb && git commit -m 'Update Homebrew formula to v$VERSION'"
+        echo "4. Push: git push"
+        echo ""
+        echo "To submit to homebrew-core:"
+        echo "1. Fork https://github.com/Homebrew/homebrew-core"
+        echo "2. Copy packaging/homebrew/prompy.rb to Formula/p/prompy.rb in your fork"
+        echo "3. Create PR with title: 'prompy: update $VERSION'"
