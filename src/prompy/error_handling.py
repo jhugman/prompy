@@ -7,8 +7,7 @@ This module provides consistent error handling and reporting across the applicat
 import logging
 import sys
 import textwrap
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import click
 
@@ -76,7 +75,8 @@ class PrompyError(Exception):
         return "\n".join(part for part in parts if part)
 
     def _format_snippet(self) -> str:
-        """Format the code snippet with line numbers and highlight the error line and column."""
+        """Format the code snippet with line numbers and highlight the error line
+        and column."""
         if not self.snippet or self.snippet_line is None:
             return ""
 
@@ -220,7 +220,8 @@ class FragmentNotFoundError(PrompyError):
     def _generate_suggestion(self) -> str:
         """Generate a helpful suggestion based on the error."""
         suggestions = [
-            f"Check if the fragment '@{self.fragment_slug}' exists in one of the prompt directories.",
+            f"Check if the fragment '@{self.fragment_slug}' exists in one of the "
+            "prompt directories.",
             "Try running 'prompy list' to see available fragments.",
         ]
         return " ".join(suggestions)
@@ -292,8 +293,10 @@ class CyclicReferenceError(PrompyError):
     def _generate_suggestion(self) -> str:
         """Generate a helpful suggestion based on the error."""
         suggestions = [
-            "Break the cycle by removing one of the references in the chain or restructuring your templates.",
-            "Consider moving shared content to a separate fragment that others can include.",
+            "Break the cycle by removing one of the references in the chain or "
+            "restructuring your templates.",
+            "Consider moving shared content to a separate fragment that others "
+            "can include.",
         ]
         return " ".join(suggestions)
 
@@ -326,7 +329,10 @@ class MissingArgumentError(PrompyError):
         self.line_number = line_number  # Store line number for formatting
         self.required_args = required_args or []
 
-        message = f"Missing required argument '{argument_name}' for fragment '@{fragment_slug}'"
+        message = (
+            f"Missing required argument '{argument_name}' for fragment "
+            f"'@{fragment_slug}'"
+        )
         details = self._format_details()
         suggestion = self._generate_suggestion()
 
@@ -442,12 +448,26 @@ class PrompyTemplateSyntaxError(PrompyError):
         """Generate a helpful suggestion based on the syntax error message."""
         # Common syntax error patterns and their suggestions
         error_patterns = {
-            "unexpected '}'": "Make sure all curly braces are properly matched. Check for missing opening '{' characters.",
-            "unexpected end of template": "The template may be missing a closing tag or brace. Check for unclosed blocks.",
-            "expected name or number": "A variable name or numeric value was expected here. Check the syntax.",
+            "unexpected '}'": (
+                "Make sure all curly braces are properly matched. Check for "
+                "missing opening '{' characters."
+            ),
+            "unexpected end of template": (
+                "The template may be missing a closing tag or brace. Check for "
+                "unclosed blocks."
+            ),
+            "expected name or number": (
+                "A variable name or numeric value was expected here. Check the "
+                "syntax."
+            ),
             "missing closing quote": "Add the missing closing quote to the string.",
-            "missing bracket": "Add the missing bracket to complete the expression.",
-            "missing parenthesis": "Add the missing parenthesis to complete the function call or expression.",
+            "missing bracket": (
+                "Add the missing bracket to complete the expression."
+            ),
+            "missing parenthesis": (
+                "Add the missing parenthesis to complete the function call or "
+                "expression."
+            ),
         }
 
         # Find matching patterns and return appropriate suggestions
@@ -456,7 +476,10 @@ class PrompyTemplateSyntaxError(PrompyError):
                 return suggestion
 
         # Default suggestion if no specific pattern matches
-        return "Check the syntax at the indicated location and ensure it follows template language rules."
+        return (
+            "Check the syntax at the indicated location and ensure it follows "
+            "template language rules."
+        )
 
 
 def handle_error(
@@ -617,7 +640,7 @@ def handle_error(
 # 3. A centralized error catalog could be created to ensure consistent error messages
 #    across the application.
 #
-# 4. More specific error types could be added for various situations, such as file access errors,
-#    permissions issues, etc.
+# 4. More specific error types could be added for various situations, such
+#    as file access errors, permissions issues, etc.
 #
 # 5. Error reporting could be enhanced with suggestions for fixing common issues.

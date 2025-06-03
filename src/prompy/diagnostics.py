@@ -8,7 +8,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from io import StringIO
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import click
 from rich.box import SIMPLE
@@ -167,7 +167,10 @@ class DiagnosticsManager:
 
         # Create a rich tree starting from the root
         tree = Tree(
-            f"@{self.resolution_tree.slug} ({self.resolution_tree.duration * 1000:.2f}ms)"
+            (
+                f"@{self.resolution_tree.slug} "
+                f"({self.resolution_tree.duration * 1000:.2f}ms)"
+            )
             if self.resolution_tree.duration
             else f"@{self.resolution_tree.slug}"
         )

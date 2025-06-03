@@ -4,7 +4,7 @@ Module for Jinja2 extension to support Prompy's fragment inclusion syntax.
 
 import re
 import time
-from typing import Any, cast
+from typing import Any
 
 from jinja2 import Environment, Template
 from jinja2.ext import Extension
@@ -83,7 +83,8 @@ def preprocess_template(source: str) -> str:
             match: The regex match object containing the expression
 
         Returns:
-            str: The processed expression with @refs transformed to include_fragment calls
+            str: The processed expression with @refs transformed to
+                include_fragment calls
         """
         expr = match.group(1).strip()
         match_start = match.start()
@@ -141,7 +142,8 @@ def preprocess_template(source: str) -> str:
         slug = match.group(1)
         args_text = match.group(2)
 
-        # Determine if this reference is an argument value by checking for unbalanced parentheses
+        # Determine if this reference is an argument value by checking for
+        # unbalanced parentheses
         is_arg_value = _is_arg_value(expr, match.start())
 
         # Use empty indent for arg values, otherwise use indentation from line
@@ -187,8 +189,9 @@ class PrompyExtension(Extension):
     """
     A Jinja2 extension that adds support for @slug references in templates.
 
-    This extension processes expressions like {{ @fragments/common-header(project="MyProject") }}
-    by transforming them into a function call that loads and renders the referenced fragment.
+    This extension processes expressions like
+    {{ @fragments/common-header(project="MyProject") }} by transforming them
+    into a function call that loads and renders the referenced fragment.
     """
 
     # Define the tags this extension is interested in
@@ -248,7 +251,6 @@ class PrompyExtension(Extension):
         # Start timing for diagnostics
         start_time = time.time() if hasattr(time, "time") else None
 
-        from .diagnostics import diagnostics_manager
 
         # Add diagnostic event
         diagnostics_manager.add_event(
@@ -368,7 +370,8 @@ class PrompyExtension(Extension):
             # Restore the original stack
             self.environment.globals["_fragment_stack"] = original_stack
 
-            # If we're tracking resolution, update the duration and restore the parent node
+            # If we're tracking resolution, update the duration and restore
+            # the parent node
             if current_node:
                 current_node.duration = (
                     time.time() - start_time if start_time else 0.001
@@ -387,7 +390,7 @@ class PrompyExtension(Extension):
 
         except FileNotFoundError:
             raise ValueError(f"Missing fragment: @{__slug}")
-        except Exception as e:
+        except Exception:
             # Ensure we restore the stack even if there's an error
             self.environment.globals["_fragment_stack"] = fragment_stack
             raise

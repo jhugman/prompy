@@ -3,9 +3,6 @@ Tests for the editor module.
 """
 
 import os
-import re
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -14,9 +11,6 @@ from prompy.editor import (
     find_editor,
     launch_editor,
 )
-from prompy.prompt_context import PromptContext
-from prompy.prompt_file import PromptFile
-from prompy.prompt_files import PromptFiles
 
 
 class TestEditorDetection:
@@ -89,7 +83,8 @@ class TestEditorLaunching:
 
     @patch("subprocess.run")
     def test_launch_editor_with_args(self, mock_run):
-        """Test that the EDITOR environment variable with arguments is properly parsed."""
+        """Test that the EDITOR environment variable with arguments is properly
+        parsed."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_run.return_value = mock_result

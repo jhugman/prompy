@@ -29,9 +29,12 @@ class PromptContext:
         Args:
             project_name (Optional[str]): The project name
             language (Optional[str]): The detected language
-            language_dirs (List[Path]): List of directories to search for language prompts
-            project_dirs (List[Path]): List of directories to search for project prompts
-            fragment_dirs (List[Path]): List of directories to search for fragment prompts
+            language_dirs (List[Path]): List of directories to search for
+                language prompts
+            project_dirs (List[Path]): List of directories to search for
+                project prompts
+            fragment_dirs (List[Path]): List of directories to search for
+                fragment prompts
         """
         self.project_name = project_name
         self.language = language
@@ -54,14 +57,17 @@ class PromptContext:
         Args:
             slug_suffix (str): The suffix part of the slug (without prefix)
             directories (List[Path]): List of directories to search
-            should_exist (bool): If True, search for existing file; if False, return a path in the first directory
+            should_exist (bool): If True, search for existing file; if False,
+                return a path in the first directory
             global_only (bool): If True, only look at the last directory in the list
 
         Returns:
-            Optional[Path]: Path to the file if found or created, or None if no path is available
+            Optional[Path]: Path to the file if found or created, or None if
+                no path is available
         """
         # If global_only is True, only use the last directory in the list
-        search_dirs = [directories[-1]] if global_only and directories else directories
+        if global_only and directories:
+            directories = [directories[-1]]
         files = [directory / f"{slug_suffix}.md" for directory in directories]
 
         # If searching for an existing file, check each directory in order
@@ -85,7 +91,8 @@ class PromptContext:
 
         Args:
             slug (str): The prompt slug
-            should_exist (bool): If True, search for existing file; if False, return a path even if it doesn't exist
+            should_exist (bool): If True, search for existing file; if False,
+                return a path even if it doesn't exist
             global_only (bool): If True, only look at the global directories
 
         Returns:
@@ -135,7 +142,8 @@ class PromptContext:
 
         Args:
             slug (str): The prompt slug
-            should_exist (bool): If True, search for existing file; if False, return a path even if it doesn't exist
+            should_exist (bool): If True, search for existing file; if False,
+                return a path even if it doesn't exist
             global_only (bool): If True, only look at the global directories
 
         Returns:
@@ -213,7 +221,8 @@ class PromptContext:
         self, slug_prefix: str, directory: Path
     ) -> Dict[str, Path]:
         """
-        Make a dictionary of slugs to PromptFiles based on the markdown files found by recursively looking in the directory.
+        Make a dictionary of slugs to PromptFiles based on the markdown files
+        found by recursively looking in the directory.
 
         Args:
             slug_prefix (str): Prefix to prepend to each slug
@@ -247,7 +256,7 @@ class PromptContext:
 
                 # Add to the dictionary
                 files[slug] = path
-            except Exception as e:
+            except Exception:
                 # Skip files that can't be loaded
                 continue
 
@@ -273,7 +282,8 @@ class PromptContext:
         if global_only and directories:
             dirs_to_search = [directories[-1]]
         else:
-            # Search directories in reverse order so files from earlier dirs can override later ones
+            # Search directories in reverse order so files from earlier dirs
+            # can override later ones
             dirs_to_search = list(reversed(directories))
 
         for directory in dirs_to_search:

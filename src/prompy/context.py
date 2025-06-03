@@ -2,13 +2,11 @@
 Functions for creating and managing PromptContext instances.
 """
 
-import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 
-from prompy.config import detect_language, find_project_dir, get_config_dir
 from prompy.prompt_context import PromptContext
 
 
@@ -33,13 +31,18 @@ def create_prompt_context(
     language: Optional[str] = None,
 ) -> PromptContext:
     """
-    Create a PromptContext with appropriate directories for language, project and fragments.
+    Create a PromptContext with appropriate directories for language, project and
+    fragments.
 
     Args:
-        config_dir (Optional[Path]): Optional config directory, will be detected if not provided
-        project_dir (Optional[Path]): Optional project directory, will be detected if not provided
-        project (Optional[str]): Optional project name, will be detected if not provided
-        language (Optional[str]): Optional language name, will be detected if not provided
+        config_dir (Optional[Path]): Optional config directory, will be detected if
+            not provided
+        project_dir (Optional[Path]): Optional project directory, will be detected if
+            not provided
+        project (Optional[str]): Optional project name, will be detected if not
+            provided
+        language (Optional[str]): Optional language name, will be detected if not
+            provided
 
     Returns:
         PromptContext: A configured prompt context

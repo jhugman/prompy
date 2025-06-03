@@ -158,7 +158,9 @@ def test_render_with_arguments():
     # Setup
     main_file = PromptFile(
         slug="main",
-        markdown_template="Template with {{ @fragment(arg1='value1', key='value2') }} here",
+        markdown_template=(
+            "Template with {{ @fragment(arg1='value1', key='value2') }} here"
+        ),
     )
 
     fragment_file = PromptFile(

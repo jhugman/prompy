@@ -5,13 +5,11 @@ Tests for the save command functionality.
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import click
 import pytest
 from click.testing import CliRunner
 
-from prompy.cache import load_from_cache
 from prompy.cli import cli
 from prompy.prompt_file import PromptFile
 
@@ -38,7 +36,10 @@ def mock_save_env():
         cache_file = test_project_cache / "CURRENT_FILE.md"
 
         # Sample content for testing
-        test_content = "This is a test cache content.\n\nIt includes multiple paragraphs.\n\nIt should be saved as a prompt."
+        test_content = (
+            "This is a test cache content.\n\nIt includes multiple paragraphs.\n\n"
+            "It should be saved as a prompt."
+        )
         with open(cache_file, "w", encoding="utf-8") as f:
             f.write(test_content)
 

@@ -5,15 +5,13 @@ Tests to confirm that the autouse fixture correctly prevents editors from launch
 import os
 import tempfile
 
-import pytest
-
 
 def test_autouse_mock_prevents_actual_editor():
     """
     Test that the autouse fixture prevents actual editors from launching.
 
-    This test is not in a class that would be skipped by the mock_editor_autouse fixture,
-    so it should use the default mock.
+    This test is not in a class that would be skipped by the
+    mock_editor_autouse fixture, so it should use the default mock.
     """
     # Import inside the test to ensure we get the patched version
     from prompy.editor import launch_editor

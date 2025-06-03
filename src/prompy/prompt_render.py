@@ -2,11 +2,10 @@
 Module for rendering prompt templates with fragment resolution using Jinja2.
 """
 
-import re
 import time
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List, Match, Optional, Set, Tuple, Union, cast
+from typing import Dict, Optional
 
 from jinja2 import Environment, Template, TemplateSyntaxError
 
@@ -122,7 +121,8 @@ class PromptRender:
             # Add the current prompt file slug to the fragment stack to detect cycles
             self.env.globals["_fragment_stack"] = [self.prompt_file.slug]
 
-            # Store a set of all referenced slugs for diagnostics (used for visualization)
+            # Store a set of all referenced slugs for diagnostics (used for
+            # visualization)
             self.env.globals["_referenced_slugs"] = set()
 
             # Set the prompt context in the environment

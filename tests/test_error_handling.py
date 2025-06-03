@@ -2,12 +2,9 @@
 Tests for error handling functionality.
 """
 
-import logging
 import sys
-from typing import Any, Dict, Optional
 
 import click
-import pytest
 from click.testing import CliRunner
 
 from prompy.error_handling import (

@@ -695,6 +695,7 @@ dev = [
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 lint = [
     { name = "black" },
@@ -705,6 +706,7 @@ test = [
     { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 
 [package.dev-dependencies]
@@ -732,6 +734,8 @@ requires-dist = [
     { name = "rich", specifier = ">=14.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.1.0" },
+    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'dev'", specifier = ">=1.2.0" },
+    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'test'", specifier = ">=1.2.0" },
 ]
 provides-extras = ["dev", "test", "lint"]
 

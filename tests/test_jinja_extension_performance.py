@@ -4,14 +4,12 @@ Test module for performance optimizations in the Jinja2 extension.
 
 from unittest.mock import MagicMock
 
-import pytest
 from jinja2 import Environment
 
 from prompy.jinja_extension import PrompyExtension, preprocess_template
 from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile
 from prompy.prompt_render import PromptRender
-from tests.jinja_test_support import create_test_extension
 
 
 def test_prompt_render_creation():

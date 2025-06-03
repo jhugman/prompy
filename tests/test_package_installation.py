@@ -5,11 +5,7 @@ These tests verify that the package can be properly installed and that
 entry points work correctly.
 """
 
-import shutil
-import subprocess
 import sys
-import tempfile
-import venv
 from pathlib import Path
 from unittest.mock import patch
 
@@ -32,8 +28,6 @@ class TestPackageInstallation:
     def test_cli_executable(self):
         """Test that the CLI is executable."""
         # Test by calling the main function directly
-        import sys
-        from unittest.mock import patch
 
         from prompy.cli import main
 
@@ -207,7 +201,14 @@ class TestBuildProcess:
 
     def test_pyproject_toml_valid(self):
         """Test that pyproject.toml is valid TOML."""
-        import tomllib
+        # Handle tomllib import for different Python versions
+        try:
+            import tomllib  # Python 3.11+
+        except ImportError:
+            try:
+                import tomli as tomllib  # Python 3.9-3.10 fallback
+            except ImportError:
+                pytest.skip("No TOML library available (tomllib or tomli)")
 
         pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 
@@ -217,12 +218,19 @@ class TestBuildProcess:
                 assert "project" in config
                 assert "name" in config["project"]
                 assert config["project"]["name"] == "prompy"
-            except tomllib.TOMLDecodeError as e:
+            except Exception as e:  # Handle both tomllib.TOMLDecodeError and tomli.TOMLKitError
                 pytest.fail(f"Invalid TOML in pyproject.toml: {e}")
 
     def test_package_scripts_configuration(self):
         """Test that package scripts are properly configured."""
-        import tomllib
+        # Handle tomllib import for different Python versions
+        try:
+            import tomllib  # Python 3.11+
+        except ImportError:
+            try:
+                import tomli as tomllib  # Python 3.9-3.10 fallback
+            except ImportError:
+                pytest.skip("No TOML library available (tomllib or tomli)")
 
         pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 

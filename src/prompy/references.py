@@ -8,7 +8,7 @@ Supports both Jinja2-style ({{ @slug }}) and legacy-style (@slug) references.
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Pattern, Set, Union
+from typing import Dict, Pattern
 
 from .prompt_context import PromptContext
 from .prompt_file import PromptFile
@@ -127,7 +127,8 @@ def update_references(
                     # Update references in this file
                     updated = update_references_in_file(file_path, old_slug, new_slug)
                     updated_files[str(file_path)] = updated
-                except:
+                except (OSError, ValueError, AssertionError) as e:
+                    logger.debug(f"Skipping {slug}: {e}")
                     continue
 
     return updated_files

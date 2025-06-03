@@ -47,7 +47,8 @@ def generate_frontmatter(
 
 
 def extract_description_from_content(content: str) -> str:
-    # Process templates inclusions and variables line by line to avoid regex issues with multiple lines
+    # Process templates inclusions and variables line by line to avoid regex
+    # issues with multiple lines
     lines = []
     for line in content.splitlines():
         # Remove all template and variable patterns
@@ -94,8 +95,8 @@ def extract_arguments_from_content(content: str) -> Optional[Dict[str, Optional[
         content: The prompt content to analyze
 
     Returns:
-        Optional[Dict[str, Optional[str]]]: A dictionary of argument names to default values,
-                                         or None if no arguments found
+        Optional[Dict[str, Optional[str]]]: A dictionary of argument names to
+            default values, or None if no arguments found
     """
     # Define regex patterns for variable detection
     patterns = [

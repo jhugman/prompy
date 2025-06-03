@@ -2,10 +2,7 @@
 Tests for updating references when fragments are moved.
 """
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from prompy.prompt_context import PromptContext
 from prompy.prompt_file import PromptFile

@@ -2,9 +2,6 @@
 Utilities for mocking the editor functionality during tests.
 """
 
-import os
-import sys
-import tempfile
 from typing import Callable, Optional
 from unittest.mock import patch
 
@@ -34,7 +31,6 @@ class EditorMock:
         Returns:
             A context manager that can be used in a with statement to patch the editor.
         """
-        import sys
 
         def mock_launch_editor(file_path):
             """Mock implementation of launch_editor."""
@@ -67,7 +63,6 @@ class EditorMock:
 
         # Also patch subprocess.run as a safety net to prevent real editor launches
         def mock_subprocess_run(args, *pargs, **kwargs):
-            import subprocess
 
             print(f"MOCK SUBPROCESS: Prevented execution of: {args}")
             mock_result = type(

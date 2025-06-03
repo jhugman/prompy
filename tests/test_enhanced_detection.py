@@ -6,10 +6,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 import yaml
 
-from prompy.config import detect_language, get_default_detections
+from prompy.config import detect_language
 
 
 def test_language_detection_with_content_patterns():
@@ -50,7 +49,8 @@ def test_language_detection_with_content_patterns():
         js_file = tmpdir_path / "script.txt"  # Misleading extension
         with open(js_file, "w") as f:
             f.write(
-                "function hello() {\n    const name = 'World';\n    console.log('Hello ' + name);\n}\n"
+                "function hello() {\n    const name = 'World';\n    "
+                "console.log('Hello ' + name);\n}\n"
             )
 
         # Remove the Python file to avoid it affecting the detection
