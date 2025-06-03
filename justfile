@@ -153,11 +153,48 @@ tag version:
     echo "Tag v{{version}} created and pushed!"
     echo "GitHub Actions will now publish to PyPI"
 
-# Update Homebrew formula after PyPI publication
+# Publish to PyPI (with dry-run option)
+publish-pypi version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_pypi.py {{version}} {{args}}
+
+# Publish to PyPI dry-run
+publish-pypi-dry-run version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_pypi.py {{version}} --dry-run {{args}}
+
+# Publish to TestPyPI for testing
+publish-test-pypi version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_pypi.py {{version}} --test-pypi {{args}}
+
+# Update Homebrew formula after PyPI publication (with dry-run option)
+publish-homebrew version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_homebrew.py {{version}} {{args}}
+
+# Update Homebrew formula dry-run
+publish-homebrew-dry-run version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_homebrew.py {{version}} --dry-run {{args}}
+
+# Update Homebrew formula and commit changes
+publish-homebrew-commit version *args='':
+    #!/usr/bin/env bash
+    set -e
+    python scripts/publish_homebrew.py {{version}} --commit {{args}}
+
+# Legacy command (deprecated, use publish-homebrew instead)
 update-homebrew version:
     #!/usr/bin/env bash
     set -e
 
+    echo "⚠️  Warning: 'update-homebrew' is deprecated. Use 'publish-homebrew' instead."
     echo "Updating Homebrew formula for version {{version}}..."
     python scripts/update_homebrew.py {{version}}
 

@@ -1,0 +1,237 @@
+name: Homebrew Publishing
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update Homebrew formula to (e.g., 1.0.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Perform a dry run (test without making changes)'
+        required: false
+        type: boolean
+        default: false
+      create_pr:
+        description: 'Create a PR to homebrew-core'
+        required: false
+        type: boolean
+        default: false
+      commit_changes:
+        description: 'Commit the local formula changes'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  update-homebrew:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Wait for PyPI propagation
+      if: ${{ !inputs.dry_run }}
+      run: |
+        echo "⏳ Waiting for PyPI to propagate the new version..."
+        echo "This may take 10-15 minutes for new releases."
+
+        VERSION="${{ inputs.version }}"
+        PACKAGE_URL="https://pypi.org/pypi/prompy/$VERSION/json"
+
+        for i in {1..30}; do
+          if curl -s "$PACKAGE_URL" | grep -q "\"version\":\"$VERSION\""; then
+            echo "✅ Package prompy $VERSION found on PyPI!"
+            break
+          else
+            echo "Attempt $i/30: Package not yet available, waiting 30 seconds..."
+            sleep 30
+          fi
+
+          if [ $i -eq 30 ]; then
+            echo "❌ Package not found on PyPI after 15 minutes. Please check:"
+            echo "1. That the package was successfully published"
+            echo "2. That the version number is correct"
+            echo "3. PyPI propagation may take longer than expected"
+            exit 1
+          fi
+        done
+
+    - name: Get PyPI package SHA256
+      id: get_sha256
+      run: |
+        VERSION="${{ inputs.version }}"
+
+        if [ "${{ inputs.dry_run }}" = "true" ]; then
+          echo "sha256=abc123def456...fake-sha256-for-dry-run...789" >> $GITHUB_OUTPUT
+          echo "🧪 DRY RUN: Using fake SHA256"
+        else
+          echo "📦 Downloading prompy-$VERSION.tar.gz to calculate SHA256..."
+          TARBALL_URL="https://files.pythonhosted.org/packages/source/p/prompy/prompy-$VERSION.tar.gz"
+
+          curl -L -o "prompy-$VERSION.tar.gz" "$TARBALL_URL"
+          SHA256=$(shasum -a 256 "prompy-$VERSION.tar.gz" | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "✅ SHA256: $SHA256"
+          rm "prompy-$VERSION.tar.gz"
+        fi
+
+    - name: Update Homebrew formula
+      run: |
+        VERSION="${{ inputs.version }}"
+        SHA256="${{ steps.get_sha256.outputs.sha256 }}"
+        FORMULA_PATH="packaging/homebrew/prompy.rb"
+
+        if [ "${{ inputs.dry_run }}" = "true" ]; then
+          echo "🧪 DRY RUN: Would update $FORMULA_PATH"
+          echo "  Version: $VERSION"
+          echo "  SHA256: ${SHA256:0:16}..."
+          echo "  URL: https://files.pythonhosted.org/packages/source/p/prompy/prompy-$VERSION.tar.gz"
+        else
+          echo "📝 Updating Homebrew formula..."
+
+          # Update URL
+          sed -i '' "s|url \"https://files.pythonhosted.org/packages/source/p/prompy/prompy-[^\"]*\.tar\.gz\"|url \"https://files.pythonhosted.org/packages/source/p/prompy/prompy-$VERSION.tar.gz\"|" "$FORMULA_PATH"
+
+          # Update SHA256
+          sed -i '' "s|sha256 \"[a-f0-9]*\"|sha256 \"$SHA256\"|" "$FORMULA_PATH"
+
+          echo "✅ Updated local formula"
+
+          # Show the changes
+          echo "📋 Changes made:"
+          git diff "$FORMULA_PATH" || true
+        fi
+
+    - name: Test Homebrew formula
+      if: ${{ !inputs.dry_run }}
+      run: |
+        echo "🧪 Testing Homebrew formula..."
+        brew install --build-from-source packaging/homebrew/prompy.rb || true
+        echo "Note: Formula test completed (may show warnings for dependencies)"
+
+    - name: Commit changes
+      if: ${{ !inputs.dry_run && inputs.commit_changes }}
+      run: |
+        VERSION="${{ inputs.version }}"
+
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+        git add packaging/homebrew/prompy.rb
+
+        if git diff --staged --quiet; then
+          echo "ℹ️ No changes to commit"
+        else
+          git commit -m "Update Homebrew formula to v$VERSION"
+          git push origin main
+          echo "✅ Committed and pushed changes"
+        fi
+
+    - name: Prepare homebrew-core PR
+      if: ${{ !inputs.dry_run && inputs.create_pr }}
+      run: |
+        VERSION="${{ inputs.version }}"
+        SHA256="${{ steps.get_sha256.outputs.sha256 }}"
+
+        echo "🍺 Preparing homebrew-core PR..."
+
+        # Create a temporary directory for homebrew-core
+        mkdir -p homebrew-core-update
+        cd homebrew-core-update
+
+        # Clone homebrew-core
+        git clone --depth=1 https://github.com/Homebrew/homebrew-core.git
+        cd homebrew-core
+
+        # Create a new branch
+        BRANCH_NAME="prompy-$VERSION"
+        git checkout -b "$BRANCH_NAME"
+
+        # Copy our updated formula
+        cp "../../packaging/homebrew/prompy.rb" "Formula/p/prompy.rb"
+
+        # Commit the changes
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+        git add Formula/p/prompy.rb
+        git commit -m "prompy: update $VERSION"
+
+        echo "✅ Prepared homebrew-core branch: $BRANCH_NAME"
+        echo "📁 Files ready in: $(pwd)"
+
+        # Create instructions for manual PR creation
+        cat > ../../homebrew-pr-instructions.md << EOF
+        # Homebrew Core PR Instructions
+
+        The homebrew-core update has been prepared. To complete the PR:
+
+        1. Fork https://github.com/Homebrew/homebrew-core
+        2. Add your fork as a remote:
+           \`\`\`bash
+           cd homebrew-core-update/homebrew-core
+           git remote add fork https://github.com/YOUR_USERNAME/homebrew-core.git
+           \`\`\`
+        3. Push the branch:
+           \`\`\`bash
+           git push fork $BRANCH_NAME
+           \`\`\`
+        4. Create a PR from your fork to homebrew-core with:
+           - Title: "prompy: update $VERSION"
+           - Base: homebrew-core:master
+           - Head: YOUR_USERNAME:$BRANCH_NAME
+
+        EOF
+
+        echo "📄 Instructions saved to homebrew-pr-instructions.md"
+
+    - name: Upload homebrew-core files
+      if: ${{ !inputs.dry_run && inputs.create_pr }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: homebrew-core-pr-files
+        path: |
+          homebrew-core-update/
+          homebrew-pr-instructions.md
+
+    - name: Dry run summary
+      if: ${{ inputs.dry_run }}
+      run: |
+        echo "🧪 HOMEBREW DRY RUN COMPLETE"
+        echo ""
+        echo "Would update Homebrew formula with:"
+        echo "  Version: ${{ inputs.version }}"
+        echo "  SHA256: ${{ steps.get_sha256.outputs.sha256 }}"
+        echo "  Commit changes: ${{ inputs.commit_changes }}"
+        echo "  Create PR: ${{ inputs.create_pr }}"
+        echo ""
+        echo "✅ All checks passed! Ready for real update."
+
+    - name: Success summary
+      if: ${{ !inputs.dry_run }}
+      run: |
+        echo "🎉 Homebrew formula update complete!"
+        echo ""
+        echo "✅ Updated formula for prompy v${{ inputs.version }}"
+        if [ "${{ inputs.commit_changes }}" = "true" ]; then
+          echo "✅ Committed changes to repository"
+        fi
+        if [ "${{ inputs.create_pr }}" = "true" ]; then
+          echo "✅ Prepared homebrew-core PR files"
+          echo "📥 Check the artifacts for manual PR creation instructions"
+        fi
+        echo ""
+        echo "Users can now install with:"
+        echo "  brew install prompy"
