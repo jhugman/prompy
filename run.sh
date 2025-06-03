@@ -96,7 +96,7 @@ case $command in
         ;;
 
     build)
-        uv pip --python 3.9 build .
+        uv build
         ;;
 
     clean)
