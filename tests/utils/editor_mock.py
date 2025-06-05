@@ -63,7 +63,6 @@ class EditorMock:
 
         # Also patch subprocess.run as a safety net to prevent real editor launches
         def mock_subprocess_run(args, *pargs, **kwargs):
-
             print(f"MOCK SUBPROCESS: Prevented execution of: {args}")
             mock_result = type(
                 "MockCompletedProcess",

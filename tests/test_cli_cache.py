@@ -170,3 +170,30 @@ def test_edit_command_with_stdin(mock_cache_env):
             content = f.read()
         assert existing_content in content
         assert stdin_content in content
+
+
+def test_new_command_with_stdin_and_save(mock_cache_env):
+    """Test that the new command with stdin content and --save option works correctly."""
+    mock_config, mock_edit, cache_dir = mock_cache_env
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        # Run the new command with stdin and --save option
+        stdin_content = "Content from stdin to be saved"
+        result = runner.invoke(
+            cli,
+            ["--project", "test-project", "new", "--save", "test/my-prompt"],
+            input=stdin_content,
+        )
+
+        # Should succeed without launching editor
+        assert result.exit_code == 0
+        assert "Appended content from stdin" in result.output
+        # Should not show the editor success message since editor wasn't launched
+        assert "New prompt cached for" not in result.output
+
+        # Check that the cache file contains the stdin content
+        cache_file = cache_dir / "test-project" / "CURRENT_FILE.md"
+        with open(cache_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        assert stdin_content in content

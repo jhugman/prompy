@@ -2,7 +2,6 @@
 Tests for the frontmatter module.
 """
 
-
 from prompy.frontmatter import (
     extract_arguments_from_content,
     extract_description_from_content,

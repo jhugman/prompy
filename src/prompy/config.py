@@ -415,9 +415,7 @@ def detect_language(
                     len(matches) * 3 * weight
                 )  # Weight directories more heavily
             except Exception as e:
-                logger.debug(
-                    f"Error matching dir pattern {pattern} for {lang}: {e}"
-                )
+                logger.debug(f"Error matching dir pattern {pattern} for {lang}: {e}")
 
         # Sample some files for content pattern matching - include all files
         # if no direct pattern matches

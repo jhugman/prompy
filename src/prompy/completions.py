@@ -2,8 +2,6 @@
 Shell completion support for Prompy CLI.
 """
 
-
-
 # Import needed functions from the codebase
 
 # Shell completion script templates

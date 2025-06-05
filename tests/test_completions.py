@@ -2,7 +2,6 @@
 Tests for shell completions functionality.
 """
 
-
 import pytest
 from click.testing import CliRunner
 

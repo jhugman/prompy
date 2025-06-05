@@ -2,7 +2,6 @@
 Shell completion functions for Prompy CLI.
 """
 
-
 import click
 
 from prompy.context import from_click_context

@@ -4,8 +4,6 @@ Tests for basic diagnostics functionality.
 These tests verify the core diagnostic functionality without the CLI integration.
 """
 
-
-
 from prompy.diagnostics import (
     DiagnosticsManager,
     FragmentResolutionNode,

@@ -156,8 +156,16 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
         stdin_content = get_stdin_content()
         if stdin_content:
             # Save stdin content to cache
-            save_to_cache(cache_dir, project_name, stdin_content)
+            success = save_to_cache(cache_dir, project_name, stdin_content)
             click.echo("Appended content from stdin.")
+
+            # If --save is provided with stdin, skip editor and success message
+            if save_as is not None:
+                if success:
+                    ctx.invoke(save, prompt_slug=save_as)
+                else:
+                    click.echo("Failed to save prompt.", err=True)
+                return
         else:
             # If a template prompt is specified, use it
             if prompt_slug:
@@ -173,19 +181,19 @@ def new(ctx: click.Context, prompt_slug: Optional[str], save_as: Optional[str]) 
                 # Start with empty file
                 save_to_cache(cache_dir, project_name, "")
 
-        # Load prompt files for help comments
-        prompt_files = prompt_context.load_all()
+            # Load prompt files for help comments
+            prompt_files = prompt_context.load_all()
+
+            # Launch the editor with enhanced features
+            success = edit_file_with_comments(
+                str(cache_file_path),
+                prompt_files,
+                project_name=project_name,
+                is_new_prompt=True,
+            )
 
         # Import here to avoid circular imports
         from prompy.editor import display_editor_success
-
-        # Launch the editor with enhanced features
-        success = edit_file_with_comments(
-            str(cache_file_path),
-            prompt_files,
-            project_name=project_name,
-            is_new_prompt=True,
-        )
 
         if success:
             display_editor_success(f"New prompt cached for {project_name}")

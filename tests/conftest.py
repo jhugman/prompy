@@ -92,7 +92,6 @@ def mock_editor_autouse(request, monkeypatch):
     # Also patch subprocess.run to prevent any subprocess from being spawned
     # This is a safety measure in case the patching of launch_editor somehow fails
     def mock_subprocess_run(args, *pargs, **kwargs):
-
         print(f"\nMOCK SUBPROCESS: Prevented execution of: {args}")
         mock_result = type(
             "MockCompletedProcess", (), {"returncode": 0, "stdout": "", "stderr": ""}

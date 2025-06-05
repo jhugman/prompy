@@ -218,7 +218,9 @@ class TestBuildProcess:
                 assert "project" in config
                 assert "name" in config["project"]
                 assert config["project"]["name"] == "prompy"
-            except Exception as e:  # Handle both tomllib.TOMLDecodeError and tomli.TOMLKitError
+            except (
+                Exception
+            ) as e:  # Handle both tomllib.TOMLDecodeError and tomli.TOMLKitError
                 pytest.fail(f"Invalid TOML in pyproject.toml: {e}")
 
     def test_package_scripts_configuration(self):

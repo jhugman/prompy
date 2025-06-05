@@ -251,7 +251,6 @@ class PrompyExtension(Extension):
         # Start timing for diagnostics
         start_time = time.time() if hasattr(time, "time") else None
 
-
         # Add diagnostic event
         diagnostics_manager.add_event(
             "fragment_include_start",

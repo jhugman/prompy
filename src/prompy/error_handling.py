@@ -457,13 +457,10 @@ class PrompyTemplateSyntaxError(PrompyError):
                 "unclosed blocks."
             ),
             "expected name or number": (
-                "A variable name or numeric value was expected here. Check the "
-                "syntax."
+                "A variable name or numeric value was expected here. Check the syntax."
             ),
             "missing closing quote": "Add the missing closing quote to the string.",
-            "missing bracket": (
-                "Add the missing bracket to complete the expression."
-            ),
+            "missing bracket": ("Add the missing bracket to complete the expression."),
             "missing parenthesis": (
                 "Add the missing parenthesis to complete the function call or "
                 "expression."
