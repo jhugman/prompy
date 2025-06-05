@@ -1,40 +1,128 @@
 # Prompy
 
-A command-line tool for building prompts with reusable fragments. Prompy helps you create, manage, and share prompt templates for AI tools like Copilot or other LLM-based code helpers.
+**Build better prompts with reusable, composable fragments.**
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/yourusername/prompy)
+Prompy is a command-line tool that helps you create, manage, and share prompt templates for AI coding assistants like GitHub Copilot, ChatGPT, Claude, and other LLM-based tools. Instead of retyping the same instructions or copying prompts between projects, Prompy lets you build a library of reusable prompt fragments that you can mix and match.
+
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+## Why Prompy?
 
-- 📝 **Template Management**: Create reusable prompt fragments that can reference each other
-- 📂 **Project and Language Detection**: Automatically detects the current project and language
-- 🔗 **Fragment References**: Include and combine prompt fragments with `@fragment-name` syntax
-- ✏️ **Editor Integration**: Opens your preferred editor to customize prompts
-- 📋 **Clipboard Support**: Copy final prompts directly to your clipboard
-- 🔄 **Caching**: Automatically caches in-progress prompts between sessions
-- 🔍 **Powerful CLI**: Complete command-line interface with bash/zsh/fish completions
+- **Stop repeating yourself**: Save common instructions like "run tests", "follow coding standards", or "initialize the environment" as reusable fragments
+- **Context-aware**: Automatically detects your project and programming language to suggest relevant prompts
+- **Composable**: Combine small, focused fragments into complex, context-rich prompts
+- **Editor-friendly**: Work with your favorite editor to craft prompts, with syntax highlighting for Markdown
+- **Project-specific**: Keep project-specific prompts with your code, share common patterns globally
 
-## Installation
+## What does it look like?
 
-### Using pip
+Create reusable fragments:
+```bash
+echo "You know when you are finished when all tests pass." | prompy new --save generic/all-tests-pass
+```
+
+Build prompts from fragments:
+```markdown
+1. Implement some functionality.
+2. {{ @generic/all-tests-pass }}
+```
+
+Get expanded, ready-to-use prompts:
+```bash
+prompy out
+# Output:
+# 1. Implement some functionality.
+# 2. You know when you are finished when all tests pass.
+```
+
+## Quick Start
+
+### Installation
 
 ```bash
 pip install prompy
 ```
 
-### From source
+### Basic Usage
 
-```bash
-git clone https://github.com/yourusername/prompy.git
-cd prompy
-pip install .
+1. **Create your first prompt fragment**:
+   ```bash
+   echo "Write comprehensive tests for this code." | prompy new --save generic/write-tests
+   ```
+
+2. **Start a new prompt**:
+   ```bash
+   prompy new
+   ```
+   This opens your editor. Type:
+   ```markdown
+   Please refactor this function:
+   - Improve readability
+   - {{ @generic/write-tests }}
+   ```
+
+3. **Get your expanded prompt**:
+   ```bash
+   prompy out
+   # Outputs:
+   # Please refactor this function:
+   # - Improve readability
+   # - Write comprehensive tests for this code.
+   ```
+
+4. **Copy to clipboard and paste into your AI tool**:
+   ```bash
+   prompy pbcopy
+   ```
+
+## Core Concepts
+
+### Prompt Fragments
+Fragments are reusable pieces of prompts stored as Markdown files. They can be:
+- **Generic** (`generic/name`): Useful across any project
+- **Language-specific** (`language/python`): Tailored for specific programming languages
+- **Project-specific** (`project/name`): Custom to your current project
+
+### Reference Syntax
+Use `{{ @fragment-name }}` to include other fragments:
+```markdown
+{{ @project/setup-instructions }}
+Implement a new feature that:
+- {{ @language/follows-conventions }}
+- {{ @generic/includes-tests }}
 ```
 
-### Shell Completion Setup
+## Common Use Cases
 
-Generate shell completion scripts:
+**Environment Setup**:
+```bash
+echo "Run: uv sync && source .venv/bin/activate" | prompy new --save project/init-shell
+```
+
+**Coding Standards**:
+```bash
+echo "Follow PEP 8, use type hints, write docstrings" | prompy new --save language/python-standards
+```
+
+**Testing Requirements**:
+```bash
+echo "Include unit tests with >90% coverage" | prompy new --save generic/test-requirements
+```
+
+**Complex Prompts**:
+```markdown
+{{ @project/init-shell }}
+
+Implement a new API endpoint:
+- {{ @language/python-standards }}
+- {{ @generic/test-requirements }}
+- {{ @project/api-conventions }}
+```
+
+## Shell Completion Setup
+
+Enable tab completion for a better command-line experience:
 
 ```bash
 # For bash
@@ -42,175 +130,59 @@ prompy completions bash > ~/.prompy-completion.bash
 echo 'source ~/.prompy-completion.bash' >> ~/.bashrc
 
 # For zsh
-prompy completions zsh > ~/.zsh/_prompy
-echo 'fpath=(~/.zsh $fpath)' >> ~/.zshrc
-echo 'autoload -U compinit && compinit' >> ~/.zshrc
+prompy completions zsh > ~/.zsh/completions/_prompy
+echo 'fpath=(~/.zsh/completions $fpath)' >> ~/.zshrc
 
 # For fish
 prompy completions fish > ~/.config/fish/completions/prompy.fish
 ```
 
-## Quick Start
+## Documentation
 
-1. Set up your configuration directory:
+- **[User Guide](USER_GUIDE.md)**: Detailed tutorials and examples
+- **[Reference](REFERENCE.md)**: Complete command and configuration reference
+- **[Development](DEVELOPMENT.md)**: Contributing and development setup
 
-```bash
-export PROMPY_CONFIG_DIR=~/.config/prompy
-```
+## Project Configuration
 
-2. Create and edit a new prompt:
-
-```bash
-prompy new
-```
-
-3. Output your prompt:
-
-```bash
-prompy out
-
-# Copy to clipboard
-prompy pbcopy
-```
-
-## Usage
-
-```bash
-prompy [options] [PROMPT_SLUG]      # Traditional usage
-prompy <command> [options]          # Subcommand usage
-```
-
-### Global Options
-
-- `--version`: Show version information and exit
-- `--help`: Show help message and exit
-- `--debug`: Enable debug logging for detailed error information
-- `--language LANG`: Specify the language manually
-- `--project PROJECT`: Specify the project manually
-- `--global`, `-g`: Use prompts not saved in the project directory
-
-### Working with One-Off Prompts
-
-```bash
-# Start a new prompt (clears any existing cached prompt)
-prompy new [TEMPLATE_SLUG]
-
-# Edit the current one-off prompt
-prompy edit
-
-# Output the current prompt to stdout
-prompy out
-
-# Output the current prompt to a file
-prompy out --file output.md
-
-# Copy the current prompt to clipboard
-prompy pbcopy
-```
-
-### Managing Reusable Prompts
-
-```bash
-# List available prompts
-prompy list [--project PROJECT] [--language LANG] [--category CATEGORY]
-
-# Edit or create a reusable prompt directly
-prompy edit PROMPT_SLUG
-
-# Save the current one-off prompt as a reusable fragment
-prompy save PROMPT_SLUG [--description DESC] [--category CAT]
-
-# Move/rename a prompt
-prompy mv SOURCE_SLUG DEST_SLUG [--force]
-
-# Copy a prompt to a new location
-prompy cp SOURCE_SLUG DEST_SLUG [--force]
-
-# Remove a prompt
-prompy rm PROMPT_SLUG [--force]
-
-# Edit language detection rules
-prompy detections [--validate]
-```
-
-### Shell Completion
-
-```bash
-# Generate shell completion script
-prompy completions SHELL [--output FILE]
-```
-
-## Configuration
-
-Prompy uses the following directory structure:
+Prompy automatically detects your project by looking for `.git`, `package.json`, `pyproject.toml`, or other project markers. It organizes prompts in:
 
 ```
 $PROMPY_CONFIG_DIR/
 ├── prompts/             # Global prompt fragments
 │   ├── fragments/       # Generic reusable fragments
 │   ├── languages/       # Language-specific fragments
-│   ├── projects/        # Project-specific fragments
-│   └── tasks/           # Task-specific fragments
+│   └── projects/        # Project-specific fragments
 ├── cache/               # Cache for one-off prompts
 │   └── $project/        # Project-specific cache
 └── detections.yaml      # Language detection rules
 ```
 
-Project-specific prompts can also be stored in:
-
-```
-$PROJECT_DIR/.prompts/   # Project-specific prompt fragments
-```
-
-### Prompt Files
-
-Prompt files consist of YAML frontmatter and markdown content:
-
-```markdown
----
-description: A helpful prompt for generating tests
-categories: [testing, python]
-arguments:
-  file: The file to generate tests for
-  language: The programming language (defaults to python)
----
-Write tests for the {{file}} file in {{language}}.
-Include unit tests for each function.
+your-project/.prompy/      # Project-specific prompts (optional)
+├── prompts/
+│   ├── fragments/         # Language-specific fragments
+│   ├── language/          # Language-specific fragments
+│   └── project/           # Custom to this project
+└── cache/                 # Cache
 ```
 
-### Fragment References
-
-Reference other prompt fragments using `@fragment-name` syntax:
-
-```markdown
-# My Custom Prompt
-
-@common/header(project="MyProject")
-
-Please implement the following:
-1. A function to parse user input
-2. Error handling for invalid inputs
-3. @common/testing-requirements
-
-@common/footer
+You can also set a custom config directory:
+```bash
+export PROMPY_CONFIG_DIR=/path/to/your/prompts
 ```
 
-## Troubleshooting
+## Contributing
 
-### Common Issues
+We welcome contributions! See [DEVELOPMENT.md](DEVELOPMENT.md) for:
+- Development environment setup
+- Running tests
+- Code style guidelines
+- How to submit pull requests
 
-1. **Prompy can't find my project**
-   - Make sure you're in a git repository or specify `--project` manually
-   - Check if your project directory has a `.git` folder
+## Code of Conduct
 
-2. **Language detection is incorrect**
-   - Specify the language manually with `--language`
-   - Customize detection rules with `prompy detections`
+This project follows the [Mozilla Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/). In summary:
 
-3. **Shell completion doesn't work**
-   - Ensure completion scripts are properly sourced in your shell config
-   - Restart your shell after installing completion scripts
+## License
 
-## Development
-
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for detailed development information.
+This project is licensed under the MIT License - see the LICENSE file for details.
